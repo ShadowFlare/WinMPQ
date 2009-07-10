@@ -41,10 +41,19 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4995
-      TabIndex        =   34
+      TabIndex        =   35
       TabStop         =   0   'False
       Top             =   480
       Width           =   4995
+      Begin VB.TextBox Text5 
+         Height          =   285
+         Left            =   2280
+         MaxLength       =   2
+         TabIndex        =   5
+         Text            =   "3"
+         Top             =   1200
+         Width           =   1215
+      End
       Begin VB.TextBox Text1 
          Height          =   285
          Left            =   0
@@ -66,7 +75,7 @@ Begin VB.Form Options
          Caption         =   "&Associate WinMPQ with MPQ Archives"
          Height          =   255
          Left            =   0
-         TabIndex        =   5
+         TabIndex        =   6
          Top             =   1680
          Value           =   2  'Grayed
          Width           =   3375
@@ -75,7 +84,7 @@ Begin VB.Form Options
          Caption         =   "Use &wildcards in filenames for drag and drop"
          Height          =   255
          Left            =   0
-         TabIndex        =   7
+         TabIndex        =   8
          Top             =   2400
          Value           =   2  'Grayed
          Width           =   3735
@@ -84,17 +93,35 @@ Begin VB.Form Options
          Caption         =   "Automatically update &modified files"
          Height          =   255
          Left            =   0
-         TabIndex        =   6
+         TabIndex        =   7
          Top             =   2160
          Value           =   2  'Grayed
          Width           =   3015
+      End
+      Begin VB.Label ActualBlockSize 
+         Caption         =   "4 KB"
+         Height          =   255
+         Left            =   3600
+         TabIndex        =   56
+         Top             =   1200
+         Width           =   1215
+      End
+      Begin VB.Label Label13 
+         AutoSize        =   -1  'True
+         Caption         =   "Block size for new archives (default is 3)"
+         Height          =   390
+         Left            =   2280
+         TabIndex        =   55
+         Top             =   720
+         Width           =   2055
+         WordWrap        =   -1  'True
       End
       Begin VB.Label Label1 
          AutoSize        =   -1  'True
          Caption         =   "Maximum files for new archives: (this cannot be changed for an existing archive)"
          Height          =   495
          Left            =   0
-         TabIndex        =   37
+         TabIndex        =   38
          Top             =   120
          Width           =   4335
          WordWrap        =   -1  'True
@@ -104,7 +131,7 @@ Begin VB.Form Options
          Caption         =   "Locale ID for adding files"
          Height          =   195
          Left            =   0
-         TabIndex        =   36
+         TabIndex        =   37
          Top             =   960
          Width           =   1755
       End
@@ -112,7 +139,7 @@ Begin VB.Form Options
          Caption         =   $"Options.frx":000C
          Height          =   855
          Left            =   0
-         TabIndex        =   35
+         TabIndex        =   36
          Top             =   2640
          Width           =   4935
       End
@@ -124,7 +151,7 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   40
+      TabIndex        =   41
       TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
@@ -133,7 +160,7 @@ Begin VB.Form Options
          Caption         =   "Add &Folder..."
          Height          =   375
          Left            =   3480
-         TabIndex        =   10
+         TabIndex        =   11
          Top             =   1320
          Width           =   1335
       End
@@ -141,7 +168,7 @@ Begin VB.Form Options
          Caption         =   "Do not use above lists when one is found by above option"
          Height          =   375
          Left            =   0
-         TabIndex        =   13
+         TabIndex        =   14
          Top             =   2880
          Value           =   2  'Grayed
          Width           =   3375
@@ -150,7 +177,7 @@ Begin VB.Form Options
          Caption         =   "Use file lists for similarly named archives"
          Height          =   195
          Left            =   0
-         TabIndex        =   12
+         TabIndex        =   13
          Top             =   2640
          Width           =   3375
       End
@@ -158,14 +185,14 @@ Begin VB.Form Options
          Caption         =   "&Remove"
          Height          =   375
          Left            =   3480
-         TabIndex        =   11
+         TabIndex        =   12
          Top             =   1920
          Width           =   1335
       End
       Begin VB.ListBox FileLists 
          Height          =   2205
          Left            =   0
-         TabIndex        =   8
+         TabIndex        =   9
          Top             =   360
          Width           =   3375
       End
@@ -173,7 +200,7 @@ Begin VB.Form Options
          Caption         =   "&Add List File..."
          Height          =   375
          Left            =   3480
-         TabIndex        =   9
+         TabIndex        =   10
          Top             =   720
          Width           =   1335
       End
@@ -181,7 +208,7 @@ Begin VB.Form Options
          Caption         =   "Note:  Each file list added will increase the load time for archives."
          Height          =   255
          Left            =   0
-         TabIndex        =   51
+         TabIndex        =   52
          Top             =   3240
          Width           =   4815
       End
@@ -190,7 +217,7 @@ Begin VB.Form Options
          Caption         =   "File Lists:"
          Height          =   195
          Left            =   0
-         TabIndex        =   50
+         TabIndex        =   51
          Top             =   120
          Width           =   645
       End
@@ -202,7 +229,7 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   38
+      TabIndex        =   39
       TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
@@ -211,7 +238,7 @@ Begin VB.Form Options
          Caption         =   "&Reset size/position"
          Height          =   375
          Left            =   360
-         TabIndex        =   16
+         TabIndex        =   17
          Top             =   840
          Width           =   1695
       End
@@ -219,7 +246,7 @@ Begin VB.Form Options
          Caption         =   "Display &confirmation boxes"
          Height          =   255
          Left            =   0
-         TabIndex        =   14
+         TabIndex        =   15
          Top             =   120
          Value           =   2  'Grayed
          Width           =   2415
@@ -228,7 +255,7 @@ Begin VB.Form Options
          Caption         =   "&Save last window size and position"
          Height          =   255
          Left            =   0
-         TabIndex        =   15
+         TabIndex        =   16
          Top             =   480
          Value           =   2  'Grayed
          Width           =   3015
@@ -237,7 +264,7 @@ Begin VB.Form Options
          Caption         =   "Startup Path"
          Height          =   1215
          Left            =   0
-         TabIndex        =   39
+         TabIndex        =   40
          Top             =   2280
          Width           =   4935
          Begin VB.OptionButton Option1 
@@ -245,7 +272,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   0
             Left            =   120
-            TabIndex        =   17
+            TabIndex        =   18
             Top             =   240
             Value           =   -1  'True
             Width           =   1575
@@ -255,7 +282,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   1
             Left            =   1680
-            TabIndex        =   18
+            TabIndex        =   19
             Top             =   240
             Width           =   1695
          End
@@ -264,7 +291,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   2
             Left            =   120
-            TabIndex        =   19
+            TabIndex        =   20
             Top             =   480
             Width           =   1695
          End
@@ -272,7 +299,7 @@ Begin VB.Form Options
             Enabled         =   0   'False
             Height          =   285
             Left            =   120
-            TabIndex        =   20
+            TabIndex        =   21
             Top             =   840
             Width           =   3615
          End
@@ -281,7 +308,7 @@ Begin VB.Form Options
             Enabled         =   0   'False
             Height          =   285
             Left            =   3840
-            TabIndex        =   21
+            TabIndex        =   22
             Top             =   840
             Width           =   975
          End
@@ -294,7 +321,7 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   42
+      TabIndex        =   43
       TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
@@ -303,14 +330,14 @@ Begin VB.Form Options
          Height          =   1215
          IntegralHeight  =   0   'False
          Left            =   3120
-         TabIndex        =   23
+         TabIndex        =   24
          Top             =   2280
          Width           =   1815
       End
       Begin MSComctlLib.ListView FileTypes 
          Height          =   2535
          Left            =   0
-         TabIndex        =   22
+         TabIndex        =   23
          Top             =   960
          Width           =   3015
          _ExtentX        =   5318
@@ -337,7 +364,7 @@ Begin VB.Form Options
          Caption         =   "File extensions:"
          Height          =   195
          Left            =   3120
-         TabIndex        =   49
+         TabIndex        =   50
          Top             =   960
          Width           =   1080
       End
@@ -346,14 +373,14 @@ Begin VB.Form Options
          Caption         =   "Default action:"
          Height          =   195
          Left            =   3120
-         TabIndex        =   47
+         TabIndex        =   48
          Top             =   2040
          Width           =   1035
       End
       Begin VB.Label Label8 
          Height          =   855
          Left            =   3120
-         TabIndex        =   48
+         TabIndex        =   49
          Top             =   1200
          Width           =   1755
       End
@@ -362,7 +389,7 @@ Begin VB.Form Options
          Caption         =   $"Options.frx":00F6
          Height          =   855
          Left            =   0
-         TabIndex        =   46
+         TabIndex        =   47
          Top             =   120
          Width           =   4935
          WordWrap        =   -1  'True
@@ -375,7 +402,7 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   41
+      TabIndex        =   42
       TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
@@ -386,7 +413,7 @@ Begin VB.Form Options
          Left            =   2880
          List            =   "Options.frx":01F3
          Style           =   2  'Dropdown List
-         TabIndex        =   33
+         TabIndex        =   34
          Top             =   3120
          Width           =   1815
       End
@@ -396,7 +423,7 @@ Begin VB.Form Options
          Left            =   1200
          List            =   "Options.frx":024F
          Style           =   2  'Dropdown List
-         TabIndex        =   32
+         TabIndex        =   33
          Top             =   3120
          Width           =   1455
       End
@@ -406,14 +433,14 @@ Begin VB.Form Options
          Left            =   0
          List            =   "Options.frx":0268
          Sorted          =   -1  'True
-         TabIndex        =   26
+         TabIndex        =   27
          Top             =   720
          Width           =   1575
       End
       Begin VB.TextBox Text4 
          Height          =   285
          Left            =   0
-         TabIndex        =   24
+         TabIndex        =   25
          Top             =   360
          Width           =   855
       End
@@ -421,7 +448,7 @@ Begin VB.Form Options
          Caption         =   "&Add"
          Height          =   285
          Left            =   960
-         TabIndex        =   25
+         TabIndex        =   26
          Top             =   360
          Width           =   615
       End
@@ -429,7 +456,7 @@ Begin VB.Form Options
          Caption         =   "&Remove"
          Height          =   255
          Left            =   0
-         TabIndex        =   27
+         TabIndex        =   28
          Top             =   2640
          Width           =   1095
       End
@@ -440,7 +467,7 @@ Begin VB.Form Options
          Left            =   1800
          List            =   "Options.frx":027A
          Style           =   2  'Dropdown List
-         TabIndex        =   28
+         TabIndex        =   29
          Top             =   720
          Width           =   2535
       End
@@ -448,7 +475,7 @@ Begin VB.Form Options
          Caption         =   "Audio Compression"
          Height          =   1335
          Left            =   1800
-         TabIndex        =   43
+         TabIndex        =   44
          Top             =   1200
          Visible         =   0   'False
          Width           =   2535
@@ -457,7 +484,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   0
             Left            =   120
-            TabIndex        =   30
+            TabIndex        =   31
             Top             =   600
             Value           =   -1  'True
             Width           =   2175
@@ -467,7 +494,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   1
             Left            =   120
-            TabIndex        =   31
+            TabIndex        =   32
             Top             =   960
             Width           =   2175
          End
@@ -476,7 +503,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   2
             Left            =   120
-            TabIndex        =   29
+            TabIndex        =   30
             Top             =   240
             Width           =   2175
          End
@@ -486,7 +513,7 @@ Begin VB.Form Options
          Caption         =   "Deflate Compression Level"
          Height          =   195
          Left            =   2880
-         TabIndex        =   53
+         TabIndex        =   54
          Top             =   2880
          Width           =   1890
       End
@@ -495,7 +522,7 @@ Begin VB.Form Options
          Caption         =   "Default Compression"
          Height          =   195
          Left            =   1200
-         TabIndex        =   52
+         TabIndex        =   53
          Top             =   2880
          Width           =   1455
       End
@@ -503,7 +530,7 @@ Begin VB.Form Options
          Caption         =   "Compression type"
          Height          =   255
          Left            =   1800
-         TabIndex        =   45
+         TabIndex        =   46
          Top             =   480
          Width           =   1935
       End
@@ -511,7 +538,7 @@ Begin VB.Form Options
          Caption         =   "File Extension"
          Height          =   255
          Left            =   0
-         TabIndex        =   44
+         TabIndex        =   45
          Top             =   120
          Width           =   1215
       End
@@ -681,10 +708,12 @@ If Right(Path, 1) <> "\" Then Path = Path + "\"
 Text1_LostFocus
 Text2_LostFocus
 DefaultMaxFiles = Text1
+DefaultBlockSize = Text5
 LocaleID = Text2
 SFileSetLocale (LocaleID)
 NewKey AppKey
 SetReg AppKey + "DefaultMaxFiles", Text1, REG_DWORD
+SetReg AppKey + "DefaultBlockSize", Text5, REG_DWORD
 SetReg AppKey + "LocaleID", Text2, REG_DWORD
 If Check1.Value > 0 Then
     SetReg AppKey + "SaveWindowStatus", 1, REG_DWORD
@@ -850,6 +879,7 @@ If Top + Height > Screen.Height Then Top = Screen.Height - Height
 Path = App.Path
 If Right(Path, 1) <> "\" Then Path = Path + "\"
 Text1 = DefaultMaxFiles
+Text5 = DefaultBlockSize
 Text2 = LocaleID
 OldFileName = CD.FileName
 CD.FileName = ""
@@ -939,6 +969,9 @@ Do
             FileTypes.ListItems.Add(, aName, GetReg("HKEY_CLASSES_ROOT\" + aName + "\", UCase(Mid(aExt, 2)) + " File")).ToolTipText = UCase(aExt)
             On Error Resume Next
         End If
+    ElseIf LCase(aExt) = "*" Then
+        FileTypes.ListItems.Add(, aExt, GetReg("HKEY_CLASSES_ROOT\" + aExt + "\")).ToolTipText = ""
+        If FileTypes.ListItems.Item(aExt).Text = "" Then FileTypes.ListItems.Item(aExt).Text = " All Files"
     ElseIf LCase(aExt) = "unknown" Then
         FileTypes.ListItems.Add(, aExt, GetReg("HKEY_CLASSES_ROOT\" + aExt + "\")).ToolTipText = ""
         If FileTypes.ListItems.Item(aExt).Text = "" Then FileTypes.ListItems.Item(aExt).Text = " Unknown File"
@@ -957,7 +990,6 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
 CD.FileName = OldFileName
 End Sub
-
 Private Sub List1_Click()
 Dim xNum As Integer, OldExtComp As Integer
 If List1.ListIndex > -1 Then
@@ -997,7 +1029,6 @@ Else
     Command5.Enabled = False
 End If
 End Sub
-
 Private Sub Tabs_Click()
 Dim TabDisp As PictureBox
 For Each TabDisp In TabDisps
@@ -1008,10 +1039,29 @@ End Sub
 Private Sub Text1_KeyPress(KeyAscii As Integer)
 If (KeyAscii < 48 Or KeyAscii > 57) And KeyAscii <> 8 Then KeyAscii = 0
 End Sub
+
+Private Sub Text5_Change()
+On Error Resume Next
+If Text5 <> "" Then
+    If Text5 > 23 Then Text5 = 23
+    If Text5 <= 23 Then _
+        ActualBlockSize = CStr((512 * 2 ^ Text5) / 1024) + " KB"
+Else
+    ActualBlockSize = ""
+End If
+On Error GoTo 0
+End Sub
+Private Sub Text5_KeyPress(KeyAscii As Integer)
+If (KeyAscii < 48 Or KeyAscii > 57) And KeyAscii <> 8 Then KeyAscii = 0
+End Sub
 Private Sub Text1_LostFocus()
 If Text1 = "" Then Text1 = 0
 'If Text1 < 16 Then Text1 = 16
 'If Text1 > 262144 Then Text1 = 262144
+End Sub
+Private Sub Text5_LostFocus()
+If Text5 = "" Then Text5 = DEFAULT_BLOCK_SIZE
+If Text5 > 23 Then Text5 = 23
 End Sub
 Private Sub Text2_KeyPress(KeyAscii As Integer)
 Dim NewValue As Long

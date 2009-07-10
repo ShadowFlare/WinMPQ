@@ -1,6 +1,26 @@
 Attribute VB_Name = "MpqStuff"
 Option Explicit
 
+Type SHELLEXECUTEINFO
+    cbSize As Long
+    fMask As Long
+    hWnd As Long
+    lpVerb As String
+    lpFile As String
+    lpParameters As String
+    lpDirectory As String
+    nShow As Long
+    hInstApp As Long
+ 
+    ' Optional members
+    lpIDList As Long
+    lpClass As String
+    hkeyClass As Long
+    dwHotKey As Long
+    hIcon As Long
+    hProcess As Long
+End Type
+
 Public Declare Function ShellExecute Lib _
     "Shell32.dll" Alias "ShellExecuteA" _
     (ByVal hWnd As Long, _
@@ -9,6 +29,9 @@ Public Declare Function ShellExecute Lib _
     ByVal lpParameters As String, _
     ByVal lpDirectory As String, _
     ByVal nShowCmd As Long) As Long
+Public Declare Function ShellExecuteEx Lib _
+    "Shell32.dll" Alias "ShellExecuteExA" _
+    (sei As SHELLEXECUTEINFO) As Long
 Public Declare Sub SHChangeNotify Lib _
     "Shell32.dll" (ByVal wEventId As Long, _
     ByVal uFlags As Integer, _
@@ -28,7 +51,7 @@ Private Declare Sub CopyMemory Lib "Kernel32.dll" _
     ByVal Length As Long)
 
 Public CD As OPENFILENAME, PathInput As BROWSEINFO
-Public GlobalFileList() As String, FileList() As String, CX As Single, CY As Single, NewFile As Boolean, LocaleID As Long, ListFile As String, AddFolderName As String, ExtractPathNum As Long, CopyPathNum As Long, GlobalEncrypt As Boolean, DefaultCompress As Long, DefaultCompressID As Long, DefaultCompressLevel As Long, DefaultMaxFiles As Long
+Public GlobalFileList() As String, FileList() As String, CX As Single, CY As Single, NewFile As Boolean, LocaleID As Long, ListFile As String, AddFolderName As String, ExtractPathNum As Long, CopyPathNum As Long, GlobalEncrypt As Boolean, DefaultCompress As Long, DefaultCompressID As Long, DefaultCompressLevel As Long, DefaultMaxFiles As Long, DefaultBlockSize As Long
 Public Const AppKey As String = "HKEY_CURRENT_USER\Software\ShadowFlare\WinMPQ\", SharedAppKey As String = "HKEY_LOCAL_MACHINE\Software\ShadowFlare\WinMPQ\"
 Public Const MPQ_ERROR_INIT_FAILED As Long = &H85000001 'Unspecified error
 Public Const MPQ_ERROR_NO_STAREDIT As Long = &H85000002 'Can't find StarEdit.exe
@@ -39,6 +62,7 @@ Public Const SHCNF_IDLIST  As Long = &H0
 Public Const WM_SETREDRAW As Long = &HB
 Public Const WM_PAINT  As Long = &HF
 Const gintMAX_SIZE% = 255
+Public Const SEE_MASK_CLASSNAME As Long = &H1
 Sub AboutSFMpq()
 Dim AboutPage As String, Path As String
 Path = App.Path
@@ -50,9 +74,9 @@ End Sub
 Function mOpenMpq(FileName As String) As Long
 Dim hMPQ As Long
 mOpenMpq = 0
-hMPQ = MpqOpenArchiveForUpdate(FileName, MOAU_OPEN_EXISTING Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles)
+hMPQ = MpqOpenArchiveForUpdateEx(FileName, MOAU_OPEN_EXISTING Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles, DefaultBlockSize)
 If hMPQ = 0 Or hMPQ = INVALID_HANDLE_VALUE Then
-    hMPQ = MpqOpenArchiveForUpdate(FileName, MOAU_CREATE_NEW Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles)
+    hMPQ = MpqOpenArchiveForUpdateEx(FileName, MOAU_CREATE_NEW Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles, DefaultBlockSize)
 End If
 If hMPQ <> 0 And hMPQ <> INVALID_HANDLE_VALUE Then
     mOpenMpq = hMPQ
@@ -131,7 +155,7 @@ End If
 Exit Function
 WriteError:
 MsgBox "Error writing file.  File may be in use.", vbCritical, "WinMPQ"
-Resume Next
+Close #cNum
 End Function
 Function sListFiles(MpqName As String, hMPQ As Long, ByVal FileLists As String, ByRef ListedFiles() As FILELISTENTRY) As Boolean
 Dim NewFileLists As String, nFileLists() As String, ListName As String, cNum As Long, cNum2 As Long, cNum3 As Long, cNum4 As Long, MpqList1 As String, MpqList2 As String, Path As String, ListLen As Long, OldLists() As String, UseOnlyAutoList As Boolean, nHash As Long, nHashEntries As Long
@@ -1063,16 +1087,6 @@ DefaultMaxFiles = OldDefaultMaxFiles
 If Mid(OldPath, 2, 1) = ":" Then ChDrive Left(OldPath, 1)
 ChDir OldPath
 End Sub
-Function SBytes(Num, Start As Long, Length As Long) As String
-Dim buffer() As Byte, NumData As Currency
-If Start + Length > 8 Then Length = 8 - Start
-On Error Resume Next
-NumData = Num / 10000
-ReDim buffer(7)
-CopyMemory buffer(0), NumData, 8
-On Error GoTo 0
-SBytes = Mid(StrConv(buffer, vbUnicode), Start + 1, Length)
-End Function
 Function FindMpqHeader(MpqFile As String) As Long
     If FileExists(MpqFile) = False Then
         FindMpqHeader = -1
@@ -1106,16 +1120,6 @@ Function FindMpqHeader(MpqFile As String) As Long
     FindMpqHeader = -1
     Close #hFile
 End Function
-Function JBytes(Text As String, Start As Long, Length As Long)
-Dim buffer() As Byte, NumData As Currency
-If Start + Length - 1 > Len(Text) Then Length = Len(Text) - (Start - 1)
-On Error Resume Next
-ReDim buffer(Length - 1)
-buffer = StrConv(Mid(Text, Start, Length), vbFromUnicode)
-CopyMemory NumData, buffer(0), Length
-On Error GoTo 0
-JBytes = NumData * 10000
-End Function
 Function GetNumMpqFiles(MpqFile As String) As Long
 Dim fNum As Long, Text As String, MpqHeader As Long
 fNum = FreeFile
@@ -1123,8 +1127,7 @@ Text = String(4, Chr(0))
 MpqHeader = FindMpqHeader(MpqFile)
 If MpqHeader > -1 Then
     Open MpqFile For Binary As #fNum
-    Get #fNum, MpqHeader + 29, Text
+    Get #fNum, MpqHeader + 29, GetNumMpqFiles
     Close #fNum
-    GetNumMpqFiles = JBytes(Text, 1, 4)
 End If
 End Function

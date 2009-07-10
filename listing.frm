@@ -506,7 +506,7 @@ For Each PItem In mnuItem
     If PItem.Index <> 0 Then Unload PItem
 Next PItem
 If InStr(FileName, ".") = 0 Then
-    GoSub AddUnknown
+    GoSub AddGlobal
 Else
     For bNum = 1 To Len(FileName)
         If InStr(bNum, FileName, ".") > 0 Then
@@ -518,7 +518,7 @@ Else
     aName = Mid(FileName, bNum - 1)
     aName = GetReg("HKEY_CLASSES_ROOT\" + aName + "\")
     If aName = "" Then
-        GoSub AddUnknown
+        GoSub AddGlobal
         Exit Sub
     End If
     dItem = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\", "open")
@@ -536,7 +536,7 @@ Else
     Else
         aItem = EnumKey("HKEY_CLASSES_ROOT\" + aName + "\shell\", 0)
         If aItem = "" Then
-            GoSub AddUnknown
+            GoSub AddGlobal
             Exit Sub
         End If
         If Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\command\")) Then
@@ -573,9 +573,52 @@ Else
             aNum = aNum + 1
         End If
     Loop Until aItem = ""
+    GoSub AddGlobal
     If Shift And vbShiftMask Then GoSub AddUnknown
 End If
 Exit Sub
+AddGlobal:
+    aNum = 0
+    bNum = mnuRoot.Tag
+    dItem = ""
+    If bNum = 0 Then
+        dItem = GetReg("HKEY_CLASSES_ROOT\*\shell\", "open")
+        dItem = GetReg(SharedAppKey + "FileDefaultActions\*", dItem)
+        If dItem <> "" And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\*\shell\" + dItem + "\command\")) Then
+            If LCase(dItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\*\shell\" + dItem + "\")) Then
+                mnuItem(bNum).Caption = "Op&en with..."
+            Else
+                mnuItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\*\shell\" + dItem + "\", "&" + UCase(Left(dItem, 1)) + Mid(dItem, 2))
+            End If
+            mnuItem(bNum).Tag = dItem
+            mnuRoot.Tag = mnuRoot.Tag + 1
+            bNum = bNum + 1
+        End If
+    End If
+    Do
+        aItem = EnumKey("HKEY_CLASSES_ROOT\*\shell\", aNum)
+        If aItem <> "" Then
+            If LCase(aItem) <> LCase(dItem) And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\*\shell\" + aItem + "\command\")) Then
+                On Error Resume Next
+                Load mnuItem(bNum)
+                On Error GoTo 0
+                If LCase(aItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\*\shell\" + aItem + "\")) Then
+                    mnuItem(bNum).Caption = "Op&en with..."
+                Else
+                    mnuItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\*\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
+                End If
+                mnuItem(bNum).Tag = aItem
+                mnuRoot.Tag = mnuRoot.Tag + 1
+                bNum = bNum + 1
+            End If
+            aNum = aNum + 1
+        End If
+    Loop Until aItem = ""
+    If bNum = 0 Then
+        GoSub AddUnknown
+        Exit Sub
+    End If
+Return
 AddUnknown:
     aNum = 0
     bNum = mnuRoot.Tag
@@ -844,39 +887,64 @@ For lIndex = 1 To List.ListItems.Count
 Next lIndex
 End Sub
 Sub ExecuteFile(FileName As String, Index As Integer, mnuRoot As Menu, mnuItem)
-Dim Param As String, bNum As Long, bNum2 As Long, EnvName As String, RetVal As Long
-RetVal = ShellExecute(hWnd, mnuItem(Index).Tag, FileName, vbNullString, vbNullString, 1)
-If RetVal >= 0 And RetVal <= 32 And Index >= mnuRoot.Tag Then
-    Param = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + mnuItem(Index).Tag + "\command\")
-    Do
-        If InStr(Param, "%1") = 0 Then
-            Param = Param + " " + FileName
-        Else
-            bNum = InStr(Param, "%1")
-            Param = Left(Param, bNum - 1) + FileName + Mid(Param, bNum + 2)
-        End If
-    Loop While InStr(Param, "%1")
-    bNum = 1
-    Do While bNum <= Len(Param)
-        If InStr(bNum, Param, "%") Then
-            bNum = InStr(bNum, Param, "%")
-            If InStr(bNum + 1, Param, "%") Then
-                bNum2 = InStr(bNum + 1, Param, "%")
-                EnvName = Mid(Param, bNum + 1, bNum2 - bNum - 1)
-                If Environ(EnvName) <> "" Then
-                    Param = Left(Param, bNum - 1) + Environ(EnvName) + Mid(Param, bNum2 + 1)
-                End If
-            End If
-        End If
-        bNum = bNum + 1
-    Loop
-    On Error GoTo NoProgram
-    Shell Param, 1
-    On Error GoTo 0
+Dim Param As String, bNum As Long, bNum2 As Long, EnvName As String, RetVal As Long, sei As SHELLEXECUTEINFO
+If Index < mnuRoot.Tag Then
+    With sei
+        .cbSize = Len(sei)
+        .fMask = 0
+        .hWnd = hWnd
+        .lpVerb = mnuItem(Index).Tag
+        .lpFile = FileName
+        .lpParameters = vbNullString
+        .lpDirectory = vbNullString
+        .nShow = 1
+    End With
+    RetVal = ShellExecuteEx(sei)
+Else
+    With sei
+        .cbSize = Len(sei)
+        .fMask = SEE_MASK_CLASSNAME
+        .hWnd = hWnd
+        .lpVerb = mnuItem(Index).Tag
+        .lpFile = FileName
+        .lpParameters = vbNullString
+        .lpDirectory = vbNullString
+        .nShow = 1
+        .lpClass = "Unknown"
+    End With
+    RetVal = ShellExecuteEx(sei)
 End If
-Exit Sub
-NoProgram:
-If Err.Number = 53 Then MsgBox "No program is assigned for this action.", , "WinMPQ"
+'If RetVal >= 0 And RetVal <= 32 And Index >= mnuRoot.Tag Then
+'    Param = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + mnuItem(Index).Tag + "\command\")
+'    Do
+'        If InStr(Param, "%1") = 0 Then
+'            Param = Param + " " + FileName
+'        Else
+'            bNum = InStr(Param, "%1")
+'            Param = Left(Param, bNum - 1) + FileName + Mid(Param, bNum + 2)
+'        End If
+'    Loop While InStr(Param, "%1")
+'    bNum = 1
+'    Do While bNum <= Len(Param)
+'        If InStr(bNum, Param, "%") Then
+'            bNum = InStr(bNum, Param, "%")
+'            If InStr(bNum + 1, Param, "%") Then
+'                bNum2 = InStr(bNum + 1, Param, "%")
+'                EnvName = Mid(Param, bNum + 1, bNum2 - bNum - 1)
+'                If Environ(EnvName) <> "" Then
+'                    Param = Left(Param, bNum - 1) + Environ(EnvName) + Mid(Param, bNum2 + 1)
+'                End If
+'            End If
+'        End If
+'        bNum = bNum + 1
+'    Loop
+'    On Error GoTo NoProgram
+'    Shell Param, 1
+'    On Error GoTo 0
+'End If
+'Exit Sub
+'NoProgram:
+'If Err.Number = 53 Then MsgBox "No program is assigned for this action.", , "WinMPQ"
 End Sub
 Sub RunMpq2kCommand(CmdLine As String)
 Dim sLine As String, pNum As Long, Param() As String, EndParam As Long, CurPath As String, cType As Integer, Rswitch As Boolean, fCount As Long, Files As String, fEndLine As Long, fLine As String, bNum As Long, OldFileName As String, fNum As Long, cNum As Long, FileFilter As String, TItem As Menu, fLine2 As String, fLineTitle As String, hMPQ As Long, hFile As Long, FileShortNames() As String, dwFlags As Long
@@ -1818,6 +1886,7 @@ Width = GetReg(AppKey + "Status\WindowWidth", Width)
 If GetReg(AppKey + "Status\WindowState", WindowState) = 2 Then WindowState = 2 Else WindowState = 0
 ListFile = GetReg(AppKey + "ListFile", Path + "mpq_data.txt")
 DefaultMaxFiles = GetReg(AppKey + "DefaultMaxFiles", 1024)
+DefaultBlockSize = GetReg(AppKey + "DefaultBlockSize", DEFAULT_BLOCK_SIZE)
 LocaleID = GetReg(AppKey + "LocaleID", 0)
 GlobalEncrypt = False
 DefaultCompressID = GetReg(AppKey + "DefaultCompress", -1)
