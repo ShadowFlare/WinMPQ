@@ -38,5 +38,5 @@ ElseIf VarType(lpszName) = vbByte Or VarType(lpszName) = vbInteger Or VarType(lp
     hIcon = LoadImage(hModule, ByVal nName, IMAGE_ICON, Width, Height, LR_DEFAULTSIZE)
 End If
 If hIcon = 0 Then Exit Sub
-SendMessageA MpqEx.hWnd, WM_SETICON, ICON_SMALL, ByVal hIcon
+SendMessageA hWnd, WM_SETICON, ICON_SMALL, ByVal hIcon
 End Sub

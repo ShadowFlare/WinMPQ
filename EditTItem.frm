@@ -113,6 +113,7 @@ If Mid(App.Path, 2, 1) = ":" Then
     ChDir Left(App.Path, 2) + "\"
 End If
 CD.FileName = ""
+CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
 txtCommand = Chr(34) + CD.FileName + Chr(34)
 Cancel:

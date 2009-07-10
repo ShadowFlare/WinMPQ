@@ -7,6 +7,7 @@ Begin VB.Form MpqEx
    ClientWidth     =   6690
    Height          =   4200
    Icon            =   "listing.frx":0000
+   KeyPreview      =   -1  'True
    Left            =   1185
    LinkTopic       =   "Form1"
    ScaleHeight     =   3510
@@ -15,7 +16,7 @@ Begin VB.Form MpqEx
    Width           =   6810
    Begin VB.Timer Timer1 
       Enabled         =   0   'False
-      Interval        =   5000
+      Interval        =   2500
       Left            =   6120
       Top             =   2160
    End
@@ -204,7 +205,7 @@ Begin VB.Form MpqEx
       EndProperty
       OLEDragMode     =   1
       OLEDropMode     =   1
-      NumItems        =   5
+      NumItems        =   6
       BeginProperty ColumnHeader(1) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          Key             =   "N"
          Text            =   "Name"
@@ -233,19 +234,16 @@ Begin VB.Form MpqEx
       EndProperty
       BeginProperty ColumnHeader(5) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
          SubItemIndex    =   4
+         Key             =   "LCID"
+         Text            =   "Locale ID"
+         Object.Width           =   1129
+      EndProperty
+      BeginProperty ColumnHeader(6) {BDD1F052-858B-11D1-B16A-00C0F0283628} 
+         SubItemIndex    =   5
          Key             =   "A"
          Text            =   "Attributes"
          Object.Width           =   1129
       EndProperty
-   End
-   Begin MPQCONTROLLib.MpqControl Mpq 
-      Left            =   6120
-      Top             =   600
-      _Version        =   65542
-      _ExtentX        =   873
-      _ExtentY        =   873
-      _StockProps     =   0
-      TitleHidden     =   -1  'True
    End
    Begin VB.Menu mnuFile 
       Caption         =   "&File"
@@ -280,6 +278,34 @@ Begin VB.Form MpqEx
    Begin VB.Menu mnuMpq 
       Caption         =   "&Mpq"
       Enabled         =   0   'False
+      Begin VB.Menu mnuMItem 
+         Caption         =   "&Open"
+         Index           =   0
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuMSep1 
+         Caption         =   "-"
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuMExtract 
+         Caption         =   "&Extract"
+         Shortcut        =   ^E
+      End
+      Begin VB.Menu mnuMDelete 
+         Caption         =   "&Delete         Del or"
+         Shortcut        =   ^D
+      End
+      Begin VB.Menu mnuMRename 
+         Caption         =   "Rena&me"
+         Shortcut        =   ^R
+      End
+      Begin VB.Menu mnuMChLCID 
+         Caption         =   "Change Locale &ID..."
+         Shortcut        =   ^I
+      End
+      Begin VB.Menu mnuMSep2 
+         Caption         =   "-"
+      End
       Begin VB.Menu mnuMAdd 
          Caption         =   "&Add..."
          Shortcut        =   ^A
@@ -306,6 +332,10 @@ Begin VB.Form MpqEx
             Caption         =   "&Standard"
             Shortcut        =   {F3}
          End
+         Begin VB.Menu mnuMCDeflate 
+            Caption         =   "&Deflate"
+            Shortcut        =   {F9}
+         End
          Begin VB.Menu mnuMCAudio 
             Caption         =   "&Audio"
             Begin VB.Menu mnuMCALowest 
@@ -322,21 +352,16 @@ Begin VB.Form MpqEx
             End
          End
       End
-      Begin VB.Menu mnuMExtract 
-         Caption         =   "&Extract"
-         Shortcut        =   ^E
-      End
-      Begin VB.Menu mnuMDelete 
-         Caption         =   "&Delete    Del or"
-         Shortcut        =   ^D
-      End
-      Begin VB.Menu mnuMRename 
-         Caption         =   "Rena&me"
-         Shortcut        =   ^R
+      Begin VB.Menu mnuMEncrypt 
+         Caption         =   "Encr&ypt Files"
       End
       Begin VB.Menu mnuMCompact 
          Caption         =   "Com&pact"
          Shortcut        =   ^P
+      End
+      Begin VB.Menu mnuMAddToList 
+         Caption         =   "Add File to Li&sting..."
+         Shortcut        =   ^K
       End
       Begin VB.Menu mnuMSaveList 
          Caption         =   "Save File &List..."
@@ -351,6 +376,12 @@ Begin VB.Form MpqEx
          Index           =   0
       End
       Begin VB.Menu mnuTSep 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuTMpqEmbed 
+         Caption         =   "MPQ Embedder"
+      End
+      Begin VB.Menu mnuTSep2 
          Caption         =   "-"
       End
       Begin VB.Menu mnuTAdd 
@@ -380,7 +411,17 @@ Begin VB.Form MpqEx
          Caption         =   "&Open"
          Index           =   0
       End
-      Begin VB.Menu mnuPSep 
+      Begin VB.Menu mnuPSep1 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuPTools 
+         Caption         =   "&Tools"
+         Begin VB.Menu mnuPTItem 
+            Caption         =   "(Empty)"
+            Index           =   0
+         End
+      End
+      Begin VB.Menu mnuPSep2 
          Caption         =   "-"
       End
       Begin VB.Menu mnuPExtract 
@@ -392,6 +433,9 @@ Begin VB.Form MpqEx
       Begin VB.Menu mnuPRename 
          Caption         =   "Rena&me"
       End
+      Begin VB.Menu mnuPChLCID 
+         Caption         =   "Change Locale &ID..."
+      End
    End
 End
 Attribute VB_Name = "MpqEx"
@@ -399,7 +443,7 @@ Attribute VB_Creatable = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Dim txtCommandHasFocus As Boolean
+Dim txtCommandHasFocus As Boolean, ShiftState As Boolean
 Dim OpenFiles() As String, OpenFileDates() As Date, MpqDate As Date
 Sub AddRecentFile(rFileName As String)
 Dim bNum As Long, fNum As Long
@@ -432,10 +476,33 @@ If fNum = 0 Then
 End If
 BuildRecentFileList
 End Sub
-Sub BuildPopup(FileName As String, Shift As Integer)
+Sub BuildMpqActionList()
+Dim Shift As Integer
+On Error GoTo NotSelected
+List.SelectedItem.Tag = List.SelectedItem.Tag
+On Error GoTo 0
+If List.SelectedItem.Selected = True Then
+    Shift = 0
+    If ShiftState = True Then Shift = vbShiftMask
+    mnuMItem(0).Visible = True
+    mnuMSep1.Visible = True
+    BuildPopup List.SelectedItem.Tag, Shift, mnuMpq, mnuMItem
+Else
+    GoTo NotSelected
+End If
+Exit Sub
+NotSelected:
+Dim PItem As Menu
+For Each PItem In mnuMItem
+    If PItem.Index <> 0 Then Unload PItem
+Next PItem
+mnuMItem(0).Visible = False
+mnuMSep1.Visible = False
+End Sub
+Sub BuildPopup(FileName As String, Shift As Integer, mnuRoot As Menu, mnuItem)
 Dim aNum As Long, aItem As String, aName As String, bNum As Long, PItem As Menu, dItem As String
-mnuPopup.Tag = 0
-For Each PItem In mnuPItem
+mnuRoot.Tag = 0
+For Each PItem In mnuItem
     If PItem.Index <> 0 Then Unload PItem
 Next PItem
 If InStr(FileName, ".") = 0 Then
@@ -458,12 +525,12 @@ Else
     dItem = GetReg(SharedAppKey + "FileDefaultActions\" + aName, dItem)
     If dItem <> "" And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + dItem + "\command\")) Then
         If LCase(dItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + dItem + "\")) Then
-            mnuPItem(0).Caption = "Op&en with..."
+            mnuItem(0).Caption = "Op&en with..."
         Else
-            mnuPItem(0).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + dItem + "\", "&" + UCase(Left(dItem, 1)) + Mid(dItem, 2))
+            mnuItem(0).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + dItem + "\", "&" + UCase(Left(dItem, 1)) + Mid(dItem, 2))
         End If
-        mnuPItem(0).Tag = dItem
-        mnuPopup.Tag = 1
+        mnuItem(0).Tag = dItem
+        mnuRoot.Tag = 1
         aNum = 0
         bNum = 1
     Else
@@ -474,12 +541,12 @@ Else
         End If
         If Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\command\")) Then
             If LCase(aItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\")) Then
-                mnuPItem(0).Caption = "Op&en with..."
+                mnuItem(0).Caption = "Op&en with..."
             Else
-                mnuPItem(0).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
+                mnuItem(0).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
             End If
-            mnuPItem(0).Tag = aItem
-            mnuPopup.Tag = 1
+            mnuItem(0).Tag = aItem
+            mnuRoot.Tag = 1
             aNum = 1
             bNum = 1
         Else
@@ -492,15 +559,15 @@ Else
         If aItem <> "" Then
             If LCase(aItem) <> LCase(dItem) And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\command\")) Then
                 On Error Resume Next
-                Load mnuPItem(bNum)
+                Load mnuItem(bNum)
                 On Error GoTo 0
                 If LCase(aItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\")) Then
-                    mnuPItem(bNum).Caption = "Op&en with..."
+                    mnuItem(bNum).Caption = "Op&en with..."
                 Else
-                    mnuPItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
+                    mnuItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\" + aName + "\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
                 End If
-                mnuPItem(bNum).Tag = aItem
-                mnuPopup.Tag = mnuPopup.Tag + 1
+                mnuItem(bNum).Tag = aItem
+                mnuRoot.Tag = mnuRoot.Tag + 1
                 bNum = bNum + 1
             End If
             aNum = aNum + 1
@@ -511,18 +578,18 @@ End If
 Exit Sub
 AddUnknown:
     aNum = 0
-    bNum = mnuPopup.Tag
+    bNum = mnuRoot.Tag
     dItem = ""
     If bNum = 0 Then
         dItem = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\", "open")
         dItem = GetReg(SharedAppKey + "FileDefaultActions\Unknown", dItem)
         If dItem <> "" And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + dItem + "\command\")) Then
             If LCase(dItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + dItem + "\")) Then
-                mnuPItem(bNum).Caption = "Op&en with..."
+                mnuItem(bNum).Caption = "Op&en with..."
             Else
-                mnuPItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + dItem + "\", "&" + UCase(Left(dItem, 1)) + Mid(dItem, 2))
+                mnuItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + dItem + "\", "&" + UCase(Left(dItem, 1)) + Mid(dItem, 2))
             End If
-            mnuPItem(bNum).Tag = dItem
+            mnuItem(bNum).Tag = dItem
             bNum = bNum + 1
         End If
     End If
@@ -531,20 +598,45 @@ AddUnknown:
         If aItem <> "" Then
             If LCase(aItem) <> LCase(dItem) And Not IsEmpty(GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + aItem + "\command\")) Then
                 On Error Resume Next
-                Load mnuPItem(bNum)
+                Load mnuItem(bNum)
                 On Error GoTo 0
                 If LCase(aItem) = "openas" And IsEmpty(GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + aItem + "\")) Then
-                    mnuPItem(bNum).Caption = "Op&en with..."
+                    mnuItem(bNum).Caption = "Op&en with..."
                 Else
-                    mnuPItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
+                    mnuItem(bNum).Caption = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + aItem + "\", "&" + UCase(Left(aItem, 1)) + Mid(aItem, 2))
                 End If
-                mnuPItem(bNum).Tag = aItem
+                mnuItem(bNum).Tag = aItem
                 bNum = bNum + 1
             End If
             aNum = aNum + 1
         End If
     Loop Until aItem = ""
 Return
+End Sub
+Sub ChangeLCID(NewLCID As Long)
+Dim fNum As Long, hMPQ As Long
+fNum = 1
+hMPQ = mOpenMpq(CD.FileName)
+If hMPQ Then
+    Do While fNum <= List.ListItems.Count
+        If List.ListItems.Item(fNum).Selected Then
+            StatBar.Style = 1
+            StatBar.SimpleText = "Changing locale ID of " + List.ListItems.Item(fNum).Tag + " to " + CStr(NewLCID) + "..."
+            MousePointer = 11
+            MpqSetFileLocale hMPQ, List.ListItems.Item(fNum).Tag, List.ListItems.Item(fNum).ListSubItems(4).Tag, NewLCID
+            If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+            List.ListItems.Item(fNum).ListSubItems(4).Tag = NewLCID
+            List.ListItems.Item(fNum).ListSubItems(4).Text = NewLCID
+        End If
+        fNum = fNum + 1
+    Loop
+    MpqCloseUpdatedArchive hMPQ, 0
+End If
+StatBar.Style = 0
+StatBar.SimpleText = ""
+MousePointer = 0
+ShowSelected
+ShowTotal
 End Sub
 Sub DelRecentFile(rFileName As String)
 Dim bNum As Long, fNum As Long
@@ -560,58 +652,113 @@ Next bNum
 BuildRecentFileList
 End Sub
 Sub AddToListing(AddedFile As String)
-Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long
-If Mpq.FileExists(CD.FileName, AddedFile) Then
-    L1 = AddedFile
-    fSize = Mpq.FileSize(CD.FileName, AddedFile)
-    cSize = Mpq.GetFileInfo(CD.FileName, AddedFile, 6)
-    If fSize / 1024 > 0 And fSize / 1024 < 1 Then
-        L2 = "<1KB"
-    ElseIf fSize = 0 Then
-        L2 = "0KB"
-    Else
-        L2 = CStr(Int(fSize / 1024)) + "KB"
+Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, L6 As String, fSize As Long, cSize As Long, fFlags As Long, hMPQ As Long, hFile As Long
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+    If SFileOpenFileEx(hMPQ, AddedFile, 0, hFile) Then
+        L1 = AddedFile
+        fSize = SFileGetFileSize(hFile, 0)
+        cSize = SFileGetFileInfo(hFile, 6)
+        If fSize / 1024 > 0 And fSize / 1024 < 1 Then
+            L2 = "<1KB"
+        ElseIf fSize = 0 Then
+            L2 = "0KB"
+        Else
+            L2 = CStr(Int(fSize / 1024)) + "KB"
+        End If
+        If cSize / 1024 > 0 And cSize / 1024 < 1 Then
+            L4 = "<1KB"
+        ElseIf cSize = 0 Then
+            L4 = "0KB"
+        Else
+            L4 = CStr(Int(cSize / 1024)) + "KB"
+        End If
+        If fSize <> 0 Then
+            L3 = CStr(Int((1 - cSize / fSize) * 100)) + "%"
+        Else
+            L3 = "0%"
+        End If
+        fFlags = SFileGetFileInfo(hFile, 7)
+        L6 = SFileGetFileInfo(hFile, SFILE_INFO_LOCALEID)
+        If (fFlags And &H200) Or (fFlags And &H100) Then L5 = "C" Else L5 = "-"
+        If fFlags And &H10000 Then L5 = L5 + "E" Else L5 = L5 + "-"
+        If fFlags And &H20000 Then L5 = L5 + "X" Else L5 = L5 + "-"
+        On Error Resume Next
+        lIndex = List.ListItems.Add(, L1, L1).Index
+        On Error GoTo 0
+        If lIndex = 0 Then
+            lIndex = List.ListItems.Item(L1).Index
+            List.ListItems.Item(L1).ListSubItems.Clear
+        End If
+        List.ListItems.Item(lIndex).Tag = L1
+        List.ListItems.Item(lIndex).ListSubItems.Add(, , L2).Tag = fSize
+        If fSize <> 0 Then
+            List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = Int((1 - cSize / fSize) * 100)
+        Else
+            List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = 0
+        End If
+        List.ListItems.Item(lIndex).ListSubItems.Add(, , L4).Tag = cSize
+        List.ListItems.Item(lIndex).ListSubItems.Add(, , L6).Tag = L6
+        List.ListItems.Item(lIndex).ListSubItems.Add(, , L5).Tag = L5
+        SFileCloseFile hFile
     End If
-    If cSize / 1024 > 0 And cSize / 1024 < 1 Then
-        L4 = "<1KB"
-    ElseIf cSize = 0 Then
-        L4 = "0KB"
-    Else
-        L4 = CStr(Int(cSize / 1024)) + "KB"
-    End If
-    If fSize <> 0 Then
-        L3 = CStr(Int((1 - cSize / fSize) * 100)) + "%"
-    Else
-        L3 = "0%"
-    End If
-    fFlags = Mpq.GetFileInfo(CD.FileName, AddedFile, 7)
-    If (fFlags And &H200) Or (fFlags And &H100) Then L5 = "C" Else L5 = "-"
-    If fFlags And &H10000 Then L5 = L5 + "E" Else L5 = L5 + "-"
-    If fFlags And &H20000 Then L5 = L5 + "X" Else L5 = L5 + "-"
-    On Error Resume Next
-    lIndex = List.ListItems.Add(, L1, L1).Index
-    On Error GoTo 0
-    If lIndex = 0 Then
-        lIndex = List.ListItems.Item(L1).Index
-        List.ListItems.Item(L1).ListSubItems.Clear
-    End If
-    List.ListItems.Item(lIndex).Tag = L1
-    List.ListItems.Item(lIndex).ListSubItems.Add(, , L2).Tag = fSize
-    If fSize <> 0 Then
-        List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = Int((1 - cSize / fSize) * 100)
-    Else
-        List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = 0
-    End If
-    List.ListItems.Item(lIndex).ListSubItems.Add(, , L4).Tag = cSize
-    List.ListItems.Item(lIndex).ListSubItems.Add(, , L5).Tag = L5
+    SFileCloseArchive hMPQ
 End If
 End Sub
+Sub FileActionClick(mnuRoot As Menu, mnuItem, Index As Integer)
+Dim fNum As Long, Path As String, fName As String, fName2 As String, bNum As Long, AlreadyInList As Boolean, hMPQ As Long
+Path = App.Path
+If Right(Path, 1) <> "\" Then Path = Path + "\"
+Path = Path + "Temp_extract\"
+If ExtractPathNum = -1 Then
+    fNum = 0
+    Do
+    If DirEx(Path + CStr(fNum), "*", 6, True) = "" Then Exit Do
+    fNum = fNum + 1
+    Loop
+    ExtractPathNum = fNum
+End If
+Path = Path + CStr(ExtractPathNum) + "\"
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+For fNum = 1 To List.ListItems.Count
+    If List.ListItems.Item(fNum).Selected Then
+        StatBar.Style = 1
+        StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
+        MousePointer = 11
+        SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+        sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale LocaleID
+        If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then
+            For bNum = 1 To UBound(OpenFiles)
+                If LCase(OpenFiles(bNum)) = LCase(List.ListItems.Item(fNum).Tag) Then
+                    AlreadyInList = True
+                    If FileExists(FullPath(Path, List.ListItems.Item(fNum).Tag)) Then OpenFileDates(bNum) = FileDateTime(FullPath(Path, List.ListItems.Item(fNum).Tag))
+                    Exit For
+                End If
+            Next bNum
+            If AlreadyInList = False Then
+                ReDim Preserve OpenFiles(UBound(OpenFiles) + 1) As String, OpenFileDates(UBound(OpenFileDates) + 1) As Date
+                OpenFiles(UBound(OpenFiles)) = List.ListItems.Item(fNum).Tag
+                If FileExists(FullPath(Path, List.ListItems.Item(fNum).Tag)) Then OpenFileDates(UBound(OpenFileDates)) = FileDateTime(FullPath(Path, List.ListItems.Item(fNum).Tag))
+            End If
+        End If
+        StatBar.Style = 1
+        StatBar.SimpleText = "Opening " + List.ListItems.Item(fNum).Tag + "..."
+        fName = List.ListItems.Item(fNum).Tag
+        ExecuteFile Path + fName, Index, mnuRoot, mnuItem
+        If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then Timer1.Enabled = True
+    End If
+Next fNum
+SFileCloseArchive hMPQ
+StatBar.Style = 0
+StatBar.SimpleText = ""
+MousePointer = 0
+End Sub
 Sub MpqAddToListing(hMPQ As Long, AddedFile As String)
-Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, hFile As Long
-If Mpq.SFileOpenFileEx(hMPQ, AddedFile, 0, hFile) Then
+Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, L6 As String, fSize As Long, cSize As Long, fFlags As Long, hFile As Long
+If SFileOpenFileEx(hMPQ, AddedFile, 0, hFile) Then
     L1 = AddedFile
-    fSize = Mpq.SFileGetFileSize(hFile, 0)
-    cSize = Mpq.SFileGetFileInfo(hFile, 6)
+    fSize = SFileGetFileSize(hFile, 0)
+    cSize = SFileGetFileInfo(hFile, 6)
     If fSize / 1024 > 0 And fSize / 1024 < 1 Then
         L2 = "<1KB"
     ElseIf fSize = 0 Then
@@ -631,7 +778,8 @@ If Mpq.SFileOpenFileEx(hMPQ, AddedFile, 0, hFile) Then
     Else
         L3 = "0%"
     End If
-    fFlags = Mpq.SFileGetFileInfo(hFile, 7)
+    fFlags = SFileGetFileInfo(hFile, 7)
+    L6 = SFileGetFileInfo(hFile, SFILE_INFO_LOCALEID)
     If (fFlags And &H200) Or (fFlags And &H100) Then L5 = "C" Else L5 = "-"
     If fFlags And &H10000 Then L5 = L5 + "E" Else L5 = L5 + "-"
     If fFlags And &H20000 Then L5 = L5 + "X" Else L5 = L5 + "-"
@@ -650,8 +798,9 @@ If Mpq.SFileOpenFileEx(hMPQ, AddedFile, 0, hFile) Then
         List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = 0
     End If
     List.ListItems.Item(lIndex).ListSubItems.Add(, , L4).Tag = cSize
+    List.ListItems.Item(lIndex).ListSubItems.Add(, , L6).Tag = L6
     List.ListItems.Item(lIndex).ListSubItems.Add(, , L5).Tag = L5
-    Mpq.SFileCloseFile hFile
+    SFileCloseFile hFile
 End If
 End Sub
 Sub RemoveFromListing(RemovedFile As String)
@@ -694,12 +843,11 @@ For lIndex = 1 To List.ListItems.Count
     End If
 Next lIndex
 End Sub
-Sub ExecuteFile(FileName As String, Index As Integer)
-Dim Param As String, bNum As Long, bNum2 As Long, EnvName As String
-If Index < mnuPopup.Tag Then
-    ShellExecute hWnd, mnuPItem(Index).Tag, FileName, vbNullString, vbNullString, 1
-Else
-    Param = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + mnuPItem(Index).Tag + "\command\")
+Sub ExecuteFile(FileName As String, Index As Integer, mnuRoot As Menu, mnuItem)
+Dim Param As String, bNum As Long, bNum2 As Long, EnvName As String, RetVal As Long
+RetVal = ShellExecute(hWnd, mnuItem(Index).Tag, FileName, vbNullString, vbNullString, 1)
+If RetVal >= 0 And RetVal <= 32 And Index >= mnuRoot.Tag Then
+    Param = GetReg("HKEY_CLASSES_ROOT\Unknown\shell\" + mnuItem(Index).Tag + "\command\")
     Do
         If InStr(Param, "%1") = 0 Then
             Param = Param + " " + FileName
@@ -731,7 +879,7 @@ NoProgram:
 If Err.Number = 53 Then MsgBox "No program is assigned for this action.", , "WinMPQ"
 End Sub
 Sub RunMpq2kCommand(CmdLine As String)
-Dim sLine As String, pNum As Long, Param() As String, EndParam As Long, CurPath As String, cType As Integer, Rswitch As Boolean, fCount As Long, Files As String, fEndLine As Long, fLine As String, bNum As Long, OldFileName As String, fNum As Long, cNum As Long, FileFilter As String, TItem As Menu, fLine2 As String, fLineTitle As String, hMPQ As Long, FileShortNames() As String
+Dim sLine As String, pNum As Long, Param() As String, EndParam As Long, CurPath As String, cType As Integer, Rswitch As Boolean, fCount As Long, Files As String, fEndLine As Long, fLine As String, bNum As Long, OldFileName As String, fNum As Long, cNum As Long, FileFilter As String, TItem As Menu, fLine2 As String, fLineTitle As String, hMPQ As Long, hFile As Long, FileShortNames() As String, dwFlags As Long
 CurPath = CurDir
 If Right(CurPath, 1) <> "\" Then CurPath = CurPath + "\"
 sLine = CmdLine
@@ -764,7 +912,7 @@ If sLine <> "" Then
             CD.FileName = FullPath(CurPath, Param(2))
         End If
         If Param(3) <> "" And FileExists(CD.FileName) = False And CD.FileName <> "" Then
-            Mpq.DefaultMaxFiles = Param(3)
+            DefaultMaxFiles = Param(3)
         End If
         If FileExists(CD.FileName) Then
             OpenMpq
@@ -810,7 +958,7 @@ If sLine <> "" Then
         If Param(2) <> "" Then
             CD.FileName = FullPath(CurPath, Param(2))
             If Param(3) <> "" Then
-                Mpq.DefaultMaxFiles = Param(3)
+                DefaultMaxFiles = Param(3)
             End If
             If CD.FileName <> "" Then
                 ReDim FileList(0) As String
@@ -857,11 +1005,15 @@ If sLine <> "" Then
             Files = ""
             fEndLine = 0
             fLine = ""
+            dwFlags = MAFA_REPLACE_EXISTING
+            If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
             For pNum = 3 To UBound(Param)
                 If LCase(Param(pNum)) = "/wav" Then
                     cType = 2
+                    dwFlags = dwFlags Or MAFA_COMPRESS
                 ElseIf LCase(Param(pNum)) = "/c" And cType < 2 Then
                     cType = 1
+                    dwFlags = dwFlags Or MAFA_COMPRESS
                 ElseIf LCase(Param(pNum)) = "/auto" And cType < 1 Then
                     cType = -1
                 ElseIf LCase(Param(pNum)) = "/r" Then
@@ -892,7 +1044,7 @@ If sLine <> "" Then
                 Files = DirEx(Files, Mid(Param(2), Len(Files) + 1), 6, Rswitch)
                 List.Sorted = False
                 FileFilter = mFilter
-                hMPQ = Mpq.mOpenMpq(CD.FileName)
+                hMPQ = mOpenMpq(CD.FileName)
                 If hMPQ = 0 Then
                     StatBar.SimpleText = "Can't create archive " + CD.FileName
                     Exit Sub
@@ -912,13 +1064,13 @@ If sLine <> "" Then
                     If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                         If Right(Param(3), 1) <> "\" And Param(3) <> "" Then Param(3) = Param(3) + "\"
                         If cType = 2 Then
-                            Mpq.mAddWavFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 0
+                            MpqAddWaveToArchive hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0
                         ElseIf cType = -1 Then
                             mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine
                         ElseIf cType = 1 Then
-                            Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 1
+                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
                         Else
-                            Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 0
+                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0, 0
                         End If
                         If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                         mFilter.AddItem "*" + GetExtension(Param(3) + fLine)
@@ -934,13 +1086,13 @@ If sLine <> "" Then
                         End If
                     Else
                         If cType = 2 Then
-                            Mpq.mAddWavFile hMPQ, FullPath(CurPath, fLine), Param(3), 0
+                            MpqAddWaveToArchive hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0
                         ElseIf cType = -1 Then
                             mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3)
                         ElseIf cType = 1 Then
-                            Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3), 1
+                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
                         Else
-                            Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3), 0
+                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0, 0
                         End If
                         If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                         mFilter.AddItem "*" + GetExtension(Param(3))
@@ -959,10 +1111,10 @@ If sLine <> "" Then
                     fCount = fCount + 1
                     pNum = fEndLine + 1
                 Next pNum
-                Mpq.mCloseMpq hMPQ
+                MpqCloseUpdatedArchive hMPQ, 0
                 If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                 If UBound(FileShortNames) > 1 Then
-                    If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+                    If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
                         StatBar.SimpleText = "Adding files to listing... 0% complete"
                         For pNum = 1 To UBound(FileShortNames)
                             If MatchesFilter(FileShortNames(pNum), FileFilter) Then
@@ -972,7 +1124,7 @@ If sLine <> "" Then
                             StatBar.SimpleText = "Adding files to listing... " + CStr(Int((pNum / UBound(FileShortNames)) * 100)) + "% complete"
                             On Error GoTo 0
                         Next pNum
-                        Mpq.SFileCloseArchive hMPQ
+                        SFileCloseArchive hMPQ
                     End If
                 ElseIf UBound(FileShortNames) = 1 Then
                     AddToListing FileShortNames(1)
@@ -1010,7 +1162,7 @@ If sLine <> "" Then
                 MousePointer = 11
                 If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                     Files = MpqDir(CD.FileName, Param(2))
-                    If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then
+                    If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then
                         StatBar.SimpleText = "Can't open archive " + CD.FileName
                         Exit Sub
                     End If
@@ -1018,17 +1170,22 @@ If sLine <> "" Then
                         fEndLine = InStr(pNum, Files, vbCrLf)
                         fLine = Mid(Files, pNum, fEndLine - pNum)
                         StatBar.SimpleText = "Extracting " + fLine + "..."
-                        Mpq.sGetFile hMPQ, fLine, FullPath(CurPath, Param(3)), cType
+                        sGetFile hMPQ, fLine, FullPath(CurPath, Param(3)), cType
                         StatBar.SimpleText = StatBar.SimpleText + " Done"
                         fCount = fCount + 1
                         pNum = fEndLine + 1
                     Next pNum
-                    Mpq.SFileCloseArchive hMPQ
+                    SFileCloseArchive hMPQ
                     If fCount > 1 Then
                         StatBar.SimpleText = CStr(fCount) + " files of " + Param(2) + " extracted"
                     End If
                 Else
-                    Mpq.GetFile CD.FileName, Param(2), FullPath(CurPath, Param(3)), cType
+                    If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then
+                        StatBar.SimpleText = "Can't open archive " + CD.FileName
+                        Exit Sub
+                    End If
+                    sGetFile hMPQ, Param(2), FullPath(CurPath, Param(3)), cType
+                    SFileCloseArchive hMPQ
                     StatBar.SimpleText = StatBar.SimpleText + " Done"
                 End If
                 MousePointer = 0
@@ -1045,23 +1202,29 @@ If sLine <> "" Then
                 If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                     If InStr(Param(3), "*") <> 0 Or InStr(Param(3), "?") <> 0 Then
                         Files = MpqDir(CD.FileName, Param(2))
-                        For pNum = 1 To Len(Files)
-                            fEndLine = InStr(pNum, Files, vbCrLf)
-                            fLine = Mid(Files, pNum, fEndLine - pNum)
-                            fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
-                            StatBar.SimpleText = "Renaming " + fLine + " => " + fLine2 + "..."
-                            If Mpq.FileExists(CD.FileName, fLine2) Then
-                                Mpq.DelFile CD.FileName, fLine2
-                                Mpq.RenFile CD.FileName, fLine, fLine2
-                            Else
-                                Mpq.RenFile CD.FileName, fLine, fLine2
-                            End If
+                        hMPQ = mOpenMpq(CD.FileName)
+                        If hMPQ Then
+                            For pNum = 1 To Len(Files)
+                                fEndLine = InStr(pNum, Files, vbCrLf)
+                                fLine = Mid(Files, pNum, fEndLine - pNum)
+                                fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
+                                StatBar.SimpleText = "Renaming " + fLine + " => " + fLine2 + "..."
+                                If SFileOpenFileEx(hMPQ, fLine2, 0, hFile) Then
+                                    SFileCloseFile hFile
+                                    MpqDeleteFile hMPQ, fLine2
+                                    MpqRenameFile hMPQ, fLine, fLine2
+                                Else
+                                    MpqRenameFile hMPQ, fLine, fLine2
+                                End If
+                                If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+                                RenameInListing fLine, fLine2
+                                StatBar.SimpleText = StatBar.SimpleText + " Done"
+                                fCount = fCount + 1
+                                pNum = fEndLine + 1
+                            Next pNum
+                            MpqCloseUpdatedArchive hMPQ, 0
                             If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-                            RenameInListing fLine, fLine2
-                            StatBar.SimpleText = StatBar.SimpleText + " Done"
-                            fCount = fCount + 1
-                            pNum = fEndLine + 1
-                        Next pNum
+                        End If
                         If fCount > 1 Then
                             StatBar.SimpleText = CStr(fCount) + " files of " + Param(2) + " renamed"
                         End If
@@ -1069,11 +1232,16 @@ If sLine <> "" Then
                     StatBar.SimpleText = "You must use wildcards with new name"
                     End If
                 Else
-                    If Mpq.FileExists(CD.FileName, Param(3)) Then
-                        Mpq.DelFile CD.FileName, Param(3)
-                        Mpq.RenFile CD.FileName, Param(2), Param(3)
-                    Else
-                        Mpq.RenFile CD.FileName, Param(2), Param(3)
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        If SFileOpenFileEx(hMPQ, Param(3), 0, hFile) Then
+                            SFileCloseFile hFile
+                            MpqDeleteFile hMPQ, Param(3)
+                            MpqRenameFile hMPQ, Param(2), Param(3)
+                        Else
+                            MpqRenameFile hMPQ, Param(2), Param(3)
+                        End If
+                        MpqCloseUpdatedArchive hMPQ, 0
                     End If
                     If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                     RenameInListing Param(2), Param(3)
@@ -1101,32 +1269,43 @@ If sLine <> "" Then
             If (Left(Param(2), 1) <> "/" And Param(2) <> "") And (Left(Param(3), 1) <> "/") Then
                 If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                     Files = MpqDir(CD.FileName, Param(2))
-                    For pNum = 1 To Len(Files)
-                        fEndLine = InStr(pNum, Files, vbCrLf)
-                        fLine = Mid(Files, pNum, fEndLine - pNum)
-                        fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
-                        StatBar.SimpleText = "Moving " + fLine + " => " + fLine2 + "..."
-                        If Mpq.FileExists(CD.FileName, fLine2) Then
-                            Mpq.DelFile CD.FileName, fLine2
-                            Mpq.RenFile CD.FileName, fLine, fLine2
-                        Else
-                            Mpq.RenFile CD.FileName, fLine, fLine2
-                        End If
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        For pNum = 1 To Len(Files)
+                            fEndLine = InStr(pNum, Files, vbCrLf)
+                            fLine = Mid(Files, pNum, fEndLine - pNum)
+                            fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
+                            StatBar.SimpleText = "Moving " + fLine + " => " + fLine2 + "..."
+                            If SFileOpenFileEx(hMPQ, fLine2, 0, hFile) Then
+                                SFileCloseFile hFile
+                                MpqDeleteFile hMPQ, fLine2
+                                MpqRenameFile hMPQ, fLine, fLine2
+                            Else
+                                MpqRenameFile hMPQ, fLine, fLine2
+                            End If
+                            If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+                            RenameInListing fLine, fLine2
+                            StatBar.SimpleText = StatBar.SimpleText + " Done"
+                            fCount = fCount + 1
+                            pNum = fEndLine + 1
+                        Next pNum
+                        MpqCloseUpdatedArchive hMPQ, 0
                         If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-                        RenameInListing fLine, fLine2
-                        StatBar.SimpleText = StatBar.SimpleText + " Done"
-                        fCount = fCount + 1
-                        pNum = fEndLine + 1
-                    Next pNum
+                    End If
                     If fCount > 1 Then
                         StatBar.SimpleText = CStr(fCount) + " files of " + Param(2) + " moved"
                     End If
                 Else
-                    If Mpq.FileExists(CD.FileName, Param(3)) Then
-                        Mpq.DelFile CD.FileName, Param(3)
-                        Mpq.RenFile CD.FileName, Param(2), Param(3)
-                    Else
-                        Mpq.RenFile CD.FileName, Param(2), Param(3)
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        If SFileOpenFileEx(hMPQ, Param(3), 0, hFile) Then
+                            SFileCloseFile hFile
+                            MpqDeleteFile hFile, Param(3)
+                            MpqRenameFile hFile, Param(2), Param(3)
+                        Else
+                            MpqRenameFile hFile, Param(2), Param(3)
+                        End If
+                        MpqCloseUpdatedArchive hMPQ, 0
                     End If
                     If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                     RenameInListing Param(2), Param(3)
@@ -1144,22 +1323,31 @@ If sLine <> "" Then
             If Left(Param(2), 1) <> "/" And Param(2) <> "" Then
                 If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                     Files = MpqDir(CD.FileName, Param(2))
-                    For pNum = 1 To Len(Files)
-                        fEndLine = InStr(pNum, Files, vbCrLf)
-                        fLine = Mid(Files, pNum, fEndLine - pNum)
-                        StatBar.SimpleText = "Deleting " + fLine + "..."
-                        Mpq.DelFile CD.FileName, fLine
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        For pNum = 1 To Len(Files)
+                            fEndLine = InStr(pNum, Files, vbCrLf)
+                            fLine = Mid(Files, pNum, fEndLine - pNum)
+                            StatBar.SimpleText = "Deleting " + fLine + "..."
+                            MpqDeleteFile hMPQ, fLine
+                            If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+                            RemoveFromListing fLine
+                            StatBar.SimpleText = StatBar.SimpleText + " Done"
+                            fCount = fCount + 1
+                            pNum = fEndLine + 1
+                        Next pNum
+                        MpqCloseUpdatedArchive hMPQ, 0
                         If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-                        RemoveFromListing fLine
-                        StatBar.SimpleText = StatBar.SimpleText + " Done"
-                        fCount = fCount + 1
-                        pNum = fEndLine + 1
-                    Next pNum
+                    End If
                     If fCount > 1 Then
                         StatBar.SimpleText = CStr(fCount) + " files of " + Param(2) + " deleted"
                     End If
                 Else
-                    Mpq.DelFile CD.FileName, Param(2)
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        MpqDeleteFile hMPQ, Param(2)
+                        MpqCloseUpdatedArchive hMPQ, 0
+                    End If
                     If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
                     RemoveFromListing Param(2)
                     StatBar.SimpleText = StatBar.SimpleText + " Done"
@@ -1174,7 +1362,11 @@ If sLine <> "" Then
         If CD.FileName <> "" Then
             MousePointer = 11
             StatBar.SimpleText = "Flushing " + CD.FileName + "..."
-            Mpq.CompactMpq CD.FileName
+            hMPQ = mOpenMpq(CD.FileName)
+            If hMPQ Then
+                MpqCompactArchive hMPQ
+                MpqCloseUpdatedArchive hMPQ, 0
+            End If
             If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
             StatBar.SimpleText = StatBar.SimpleText + " Done"
             MousePointer = 0
@@ -1191,7 +1383,7 @@ If sLine <> "" Then
                     Files = MpqDir(CD.FileName, Param(2))
                     Param(2) = Param(3)
                 Else
-                    Files = ListFiles(CD.FileName, ListFile)
+                    Files = MpqDir(CD.FileName, "*")
                 End If
                 fNum = FreeFile
                 Open FullPath(CurPath, Param(2)) For Binary As #fNum
@@ -1284,8 +1476,13 @@ Dim tNum As Long, ToolName As String, ToolCommand, TItem As Menu
 For Each TItem In mnuTItem
     If TItem.Index <> 0 Then Unload TItem
 Next TItem
+For Each TItem In mnuPTItem
+    If TItem.Index <> 0 Then Unload TItem
+Next TItem
 mnuTItem(0).Caption = "(Empty)"
+mnuPTItem(0).Caption = mnuTItem(0).Caption
 mnuTItem(0).Tag = ""
+mnuPTItem(0).Tag = ""
 Do
     ToolName = GetReg(AppKey + "Tools\Name" + CStr(tNum))
     ToolCommand = GetReg(AppKey + "Tools\Command" + CStr(tNum))
@@ -1293,8 +1490,10 @@ Do
     If ToolName <> "" Then
         On Error Resume Next
         Load mnuTItem(tNum)
+        Load mnuPTItem(tNum)
         On Error GoTo 0
         mnuTItem(tNum).Tag = ToolCommand
+        mnuPTItem(tNum).Tag = mnuTItem(tNum).Tag
         If InStr(ToolName, "&") = 0 And tNum < 9 Then
             mnuTItem(tNum).Caption = "&" + CStr(tNum + 1) + " " + ToolName
         ElseIf InStr(ToolName, "&") = 0 And tNum = 9 Then
@@ -1302,12 +1501,13 @@ Do
         Else
             mnuTItem(tNum).Caption = ToolName
         End If
+        mnuPTItem(tNum).Caption = mnuTItem(tNum).Caption
     End If
     tNum = tNum + 1
 Loop Until ToolName = ""
 End Sub
 Sub OpenMpq()
-Dim Path, FileCont As String, bNum As Long, FileLine As String, nFiles As Long, LoadExtraInfo As Integer, MpqFileName As String, FileFilter As String, TItem As Menu, hMPQ As Long, hFile As Long
+Dim Path, FileCont As String, bNum As Long, FileLine As String, nFiles As Long, MpqFileName As String, FileFilter As String, TItem As Menu, hMPQ As Long, hFile As Long, FileEntries() As FILELISTENTRY
 On Error Resume Next
 If FileExists(CD.FileName) And FileLen(CD.FileName) = 0 Then
     ReDim FileList(0) As String
@@ -1324,7 +1524,7 @@ If IsMPQ(CD.FileName) = False Then
     MsgBox "This file does not contain an MPQ archive.", vbExclamation, "WinMPQ"
     Exit Sub
 End If
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then
     CD.FileName = ""
     MsgBox "The MPQ archive could not be opened.", vbExclamation, "WinMPQ"
     Exit Sub
@@ -1339,7 +1539,7 @@ FileList(0) = "(listfile)"
 If Mpq.FileExists(CD.FileName, "(listfile)") Then
     FileCont = Mpq.GetFileEx(CD.FileName, "(listfile)", 0, -1)
 #Else
-    FileCont = sListFiles(CD.FileName, hMPQ, ListFile)
+    sListFiles CD.FileName, hMPQ, ListFile, FileEntries
 #End If
     For bNum = 1 To Len(FileCont)
         If InStr(bNum, FileCont, vbCrLf) > 0 Then
@@ -1360,18 +1560,19 @@ For bNum = nFiles + 1 To UBound(FileList)
     FileList(bNum) = GlobalFileList(bNum - nFiles)
 Next bNum
 #End If
-Dim fNum As Long, lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long
+Dim fNum As Long, lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, L6 As String, fSize As Long, cSize As Long, fFlags As Long
 SendMessageA List.hWnd, WM_SETREDRAW, 0, ByVal 0&
 List.ListItems.Clear
 List.Sorted = False
-LoadExtraInfo = GetReg(AppKey + "LoadExtraInfo", 1)
 FileFilter = mFilter
 StatBar.SimpleText = "Building list... 0% complete"
-For fNum = 1 To UBound(FileList)
+For fNum = 0 To UBound(FileEntries)
 #If InternalListing Then
     If Mpq.FileExists(CD.FileName, FileList(fNum)) Then
 #End If
-    MpqFileName = FileList(fNum)
+    If FileEntries(fNum).dwFileExists Then
+    MpqFileName = StrConv(FileEntries(fNum).szFileName, vbUnicode)
+    StripNull MpqFileName
     mFilter.AddItem "*" + GetExtension(MpqFileName)
     For bNum = 1 To mFilter.ListCount - 1
         If LCase(mFilter.List(bNum)) = LCase(mFilter.List(bNum - 1)) Then
@@ -1380,11 +1581,9 @@ For fNum = 1 To UBound(FileList)
         End If
     Next bNum
     If MatchesFilter(MpqFileName, FileFilter) Then
-        L1 = FileList(fNum)
-        If LoadExtraInfo > 0 And FileList(fNum) <> "" Then
-            If Mpq.SFileOpenFileEx(hMPQ, FileList(fNum), 0, hFile) <> 0 Then
-                fSize = Mpq.SFileGetFileSize(hFile, 0)
-                cSize = Mpq.SFileGetFileInfo(hFile, 6)
+        L1 = MpqFileName
+                fSize = FileEntries(fNum).dwFullSize
+                cSize = FileEntries(fNum).dwCompressedSize
                 If fSize / 1024 > 0 And fSize / 1024 < 1 Then
                     L2 = "<1KB"
                 ElseIf fSize = 0 Then
@@ -1404,16 +1603,14 @@ For fNum = 1 To UBound(FileList)
                 Else
                     L3 = "0%"
                 End If
-                fFlags = Mpq.SFileGetFileInfo(hFile, 7)
+                fFlags = FileEntries(fNum).dwFlags
+                L6 = CStr(FileEntries(fNum).lcLocale)
                 If (fFlags And &H200) Or (fFlags And &H100) Then L5 = "C" Else L5 = "-"
                 If fFlags And &H10000 Then L5 = L5 + "E" Else L5 = L5 + "-"
                 If fFlags And &H20000 Then L5 = L5 + "X" Else L5 = L5 + "-"
-                Mpq.SFileCloseFile hFile
-            End If
-        End If
         lIndex = 0
         On Error Resume Next
-        lIndex = List.ListItems.Add(, L1, L1).Index
+        lIndex = List.ListItems.Add(, , L1).Index
         On Error GoTo 0
         If lIndex = 0 Then
             lIndex = List.ListItems.Item(L1).Index
@@ -1421,28 +1618,28 @@ For fNum = 1 To UBound(FileList)
         End If
         List.ListItems.Item(lIndex).Tag = L1
         List.ListItems.Item(lIndex).ListSubItems.Add(, , L2).Tag = fSize
-        If LoadExtraInfo > 0 Then
             If fSize <> 0 Then
                 List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = Int((1 - cSize / fSize) * 100)
             Else
                 List.ListItems.Item(lIndex).ListSubItems.Add(, , L3).Tag = 0
             End If
             List.ListItems.Item(lIndex).ListSubItems.Add(, , L4).Tag = cSize
+            List.ListItems.Item(lIndex).ListSubItems.Add(, , L6).Tag = L6
             List.ListItems.Item(lIndex).ListSubItems.Add(, , L5).Tag = L5
-        End If
+    End If
     End If
 #If InternalListing Then
     End If
 #End If
     On Error Resume Next
-    StatBar.SimpleText = "Building list... " + CStr(Int((fNum / UBound(FileList)) * 100)) + "% complete"
+    StatBar.SimpleText = "Building list... " + CStr(Int((fNum / UBound(FileEntries)) * 100)) + "% complete"
     On Error GoTo 0
 Next fNum
-Mpq.SFileCloseArchive hMPQ
+SFileCloseArchive hMPQ
 List.Sorted = True
-#If InternalListing Then
+'#If InternalListing Then
 RemoveDuplicates
-#End If
+'#End If
 On Error Resume Next
 List.SelectedItem.Selected = False
 On Error GoTo 0
@@ -1482,7 +1679,7 @@ Sub RemoveDuplicates()
 Dim fNum As Long
 fNum = 1
 Do While fNum <= List.ListItems.Count - 1
-    If LCase(List.ListItems.Item(fNum).Tag) = LCase(List.ListItems.Item(fNum + 1).Tag) Then
+    If LCase(List.ListItems.Item(fNum).Tag) = LCase(List.ListItems.Item(fNum + 1).Tag) And List.ListItems.Item(fNum).ListSubItems(4).Tag = List.ListItems.Item(fNum + 1).ListSubItems(4).Tag Then
         List.ListItems.Remove (fNum)
         fNum = fNum - 1
     End If
@@ -1490,7 +1687,7 @@ Do While fNum <= List.ListItems.Count - 1
 Loop
 End Sub
 Sub ShowSelected()
-Dim fNum As Long, nSelect As Long, sSize As Long, fSize As Long, L2 As String
+Dim fNum As Long, nSelect As Long, sSize As Long, fSize As Long, L2 As String, hMPQ As Long, hFile As Long
 On Error GoTo NotSelected
 List.SelectedItem.Tag = List.SelectedItem.Tag
 On Error GoTo 0
@@ -1500,7 +1697,13 @@ For fNum = 1 To List.ListItems.Count
         If List.ListItems.Item(fNum).ListSubItems(1).Text <> "" Then
             sSize = sSize + List.ListItems.Item(fNum).ListSubItems(1).Tag
         Else
-            fSize = Mpq.FileSize(CD.FileName, List.ListItems.Item(fNum).Tag)
+            If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+                If SFileOpenFileEx(hMPQ, List.ListItems.Item(fNum).Tag, 0, hFile) Then
+                    fSize = SFileGetFileSize(hFile, 0)
+                    SFileCloseFile hFile
+                End If
+                SFileCloseArchive hMPQ
+            End If
             If fSize / 1024 > 0 And fSize / 1024 < 1 Then
                 L2 = "<1KB"
             ElseIf fSize = 0 Then
@@ -1545,8 +1748,26 @@ RunMpq2kCommand txtCommand
 txtCommand = ""
 If StatBar.SimpleText = "" Then txtCommand_GotFocus
 End Sub
+
+Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
+If KeyCode = vbKeyShift Then
+    ShiftState = True
+    BuildMpqActionList
+End If
+End Sub
+Private Sub Form_KeyUp(KeyCode As Integer, Shift As Integer)
+If KeyCode = vbKeyShift Then
+    ShiftState = False
+    BuildMpqActionList
+End If
+End Sub
 Private Sub Form_Load()
 Dim FileName As String, bNum As Long, CurPath As String, CurPath2 As String, CurPathType As Integer, sLine As String, Param() As String, pNum As Long, EndParam As Long, ParamCutout As String, OldStartPath As String, NewStartPath As String, ErrorText As String
+Dim Path
+Path = App.Path: If Right(Path, 1) <> "\" Then Path = Path + "\"
+NewKey AppKey
+SetReg AppKey + "InstallPath", GetLongPath(App.Path), REG_SZ
+SetReg AppKey + "ProgramFilename", GetLongPath(Path + App.EXEName + ".exe"), REG_SZ
 FixIcon hWnd, 1
 InitFileDialog CD
 CD.hwndOwner = hWnd
@@ -1556,24 +1777,22 @@ InitFolderDialog PathInput
 PathInput.hwndOwner = hWnd
 PathInput.Flags = BIF_RETURNONLYFSDIRS
 ReDim OpenFiles(0) As String, OpenFileDates(0) As Date
-Dim Path
-Path = App.Path: If Right(Path, 1) <> "\" Then Path = Path + "\"
 ChDir App.Path
-If Mpq.MpqInitialize = False Then
-    ErrorText = "Mpq Control did not initialize properly!" + vbCrLf + "Reason:  "
-    Select Case Mpq.LastError
-    Case MPQ_ERROR_NO_STAREDIT
-        ErrorText = ErrorText + "Can't find StarEdit.exe"
-    Case MPQ_ERROR_BAD_STAREDIT
-        ErrorText = ErrorText + "Wrong version of StarEdit.exe.  Need SC/BW 1.07"
-    Case MPQ_ERROR_STAREDIT_RUNNING
-        ErrorText = ErrorText + "StarEdit.exe is running.  It must be closed before running this"
-    Case Else
-        ErrorText = ErrorText + "Unknown"
-    End Select
-    MsgBox ErrorText
-    End
-End If
+'If Mpq.MpqInitialize = False Then
+'    ErrorText = "Mpq Control did not initialize properly!" + vbCrLf + "Reason:  "
+'    Select Case Mpq.LastError
+'    Case MPQ_ERROR_NO_STAREDIT
+'        ErrorText = ErrorText + "Can't find StarEdit.exe"
+'    Case MPQ_ERROR_BAD_STAREDIT
+'        ErrorText = ErrorText + "Wrong version of StarEdit.exe.  Need SC/BW 1.07"
+'    Case MPQ_ERROR_STAREDIT_RUNNING
+'        ErrorText = ErrorText + "StarEdit.exe is running.  It must be closed before running this"
+'    Case Else
+'        ErrorText = ErrorText + "Unknown"
+'    End Select
+'    MsgBox ErrorText
+'    End
+'End If
 ExtractPathNum = -1
 CopyPathNum = -1
 OldStartPath = CurDir
@@ -1598,12 +1817,21 @@ Top = GetReg(AppKey + "Status\WindowTop", Top)
 Width = GetReg(AppKey + "Status\WindowWidth", Width)
 If GetReg(AppKey + "Status\WindowState", WindowState) = 2 Then WindowState = 2 Else WindowState = 0
 ListFile = GetReg(AppKey + "ListFile", Path + "mpq_data.txt")
-Mpq.DefaultMaxFiles = GetReg(AppKey + "DefaultMaxFiles", 1024)
+DefaultMaxFiles = GetReg(AppKey + "DefaultMaxFiles", 1024)
 LocaleID = GetReg(AppKey + "LocaleID", 0)
+GlobalEncrypt = False
+DefaultCompressID = GetReg(AppKey + "DefaultCompress", -1)
+Select Case DefaultCompressID
+Case -3
+DefaultCompress = MAFA_COMPRESS_DEFLATE
+Case Else
+DefaultCompress = MAFA_COMPRESS_STANDARD
+End Select
+DefaultCompressLevel = GetReg(AppKey + "DefaultZlibLevel", Z_DEFAULT_COMPRESSION)
 BuildRecentFileList
 BuildToolsList
 On Error GoTo 0
-Mpq.SetLocale LocaleID
+SFileSetLocale LocaleID
 ReDim GlobalFileList(0) As String
 #If InternalListing Then
 If FileExists(ListFile) Then
@@ -1675,8 +1903,6 @@ If sLine <> "" Then
     End Select
 End If
 End Sub
-
-
 Private Sub Form_Resize()
 On Error Resume Next
 If WindowState <> 1 Then
@@ -1734,26 +1960,35 @@ Private Sub Label1_Click()
 txtCommand.SetFocus
 End Sub
 Private Sub List_AfterLabelEdit(Cancel As Integer, NewString As String)
-Dim Result As Long
+Dim result As Long, hMPQ As Long, hFile As Long
 If List.SelectedItem.Text <> NewString Then
     If GetReg(AppKey + "ShowConfirmation", 1) = 0 Then
-        Result = vbYes
+        result = vbYes
     Else
-        Result = MsgBox("Rename file?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
+        result = MsgBox("Rename file?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
     End If
-    If Result = vbYes Then
+    If result = vbYes Then
         List.SelectedItem.Tag = NewString
-        If Mpq.FileExists(CD.FileName, NewString) Then
-            Mpq.DelFile CD.FileName, NewString
-            Mpq.RenFile CD.FileName, List.SelectedItem.Text, NewString
-            RemoveDuplicates
-        Else
-            Mpq.RenFile CD.FileName, List.SelectedItem.Text, NewString
+        hMPQ = mOpenMpq(CD.FileName)
+        If hMPQ Then
+            If SFileOpenFileEx(hMPQ, NewString, 0, hFile) Then
+                SFileCloseFile hFile
+                SFileSetLocale List.SelectedItem.ListSubItems(4).Tag
+                MpqDeleteFile hMPQ, NewString
+                MpqRenameFile hMPQ, List.SelectedItem.Text, NewString
+                SFileSetLocale LocaleID
+                RemoveDuplicates
+            Else
+                SFileSetLocale List.SelectedItem.ListSubItems(4).Tag
+                MpqRenameFile hMPQ, List.SelectedItem.Text, NewString
+                SFileSetLocale LocaleID
+            End If
+            MpqCloseUpdatedArchive hMPQ, 0
+            On Error Resume Next
+            List.SelectedItem.Key = NewString
+            On Error GoTo 0
+            If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
         End If
-        On Error Resume Next
-        List.SelectedItem.Key = NewString
-        On Error GoTo 0
-        If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
     Else
         Cancel = True
     End If
@@ -1772,6 +2007,7 @@ NotClick:
 List.SelectedItem.Selected = False
 NotSelected:
 ShowSelected
+BuildMpqActionList
 End Sub
 Private Sub List_ColumnClick(ByVal ColumnHeader As ColumnHeader)
 If List.SortKey = ColumnHeader.Index - 1 Then
@@ -1804,13 +2040,15 @@ If ExtractPathNum = -1 Then
     ExtractPathNum = fNum
 End If
 Path = Path + CStr(ExtractPathNum) + "\"
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
 For fNum = 1 To List.ListItems.Count
     If List.ListItems.Item(fNum).Selected Then
         StatBar.Style = 1
         StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
         MousePointer = 11
-        Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+        sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale LocaleID
         If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then
             For bNum = 1 To UBound(OpenFiles)
                 If LCase(OpenFiles(bNum)) = LCase(List.ListItems.Item(fNum).Tag) Then
@@ -1828,12 +2066,12 @@ For fNum = 1 To List.ListItems.Count
         StatBar.Style = 1
         StatBar.SimpleText = "Opening " + List.ListItems.Item(fNum).Tag + "..."
         fName = List.ListItems.Item(fNum).Tag
-        BuildPopup Path + fName, 0
-        ExecuteFile Path + fName, 0
+        BuildPopup Path + fName, 0, mnuPopup, mnuPItem
+        ExecuteFile Path + fName, 0, mnuPopup, mnuPItem
         If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then Timer1.Enabled = True
     End If
 Next fNum
-Mpq.SFileCloseArchive hMPQ
+SFileCloseArchive hMPQ
 StatBar.Style = 0
 StatBar.SimpleText = ""
 MousePointer = 0
@@ -1841,6 +2079,9 @@ Exit Sub
 NotClick:
 List.SelectedItem.Selected = False
 NotSelected:
+End Sub
+Private Sub List_ItemClick(ByVal Item As ListItem)
+BuildMpqActionList
 End Sub
 Private Sub List_KeyPress(KeyAscii As Integer)
 If KeyAscii = 13 Then List_DblClick
@@ -1853,22 +2094,22 @@ ElseIf KeyCode = 93 Or ((Shift And vbShiftMask) And KeyCode = vbKeyF10) Then
     List.SelectedItem.Tag = List.SelectedItem.Tag
     On Error GoTo 0
     If List.SelectedItem.Selected = True Then
-        BuildPopup List.SelectedItem.Tag, Shift
+        BuildPopup List.SelectedItem.Tag, Shift, mnuPopup, mnuPItem
         PopupMenu mnuPopup, vbPopupMenuRightButton, List.Left + List.SelectedItem.Left + 12 * Screen.TwipsPerPixelX, List.Top + List.SelectedItem.Top + 16 * Screen.TwipsPerPixelY, mnuPItem(0)
     End If
 End If
 NotSelected:
 End Sub
-Private Sub List_MouseUp(Button As Integer, Shift As Integer, x As Single, y As Single)
-CX = x
-CY = y
+Private Sub List_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+CX = X
+CY = Y
 If Button And vbRightButton Then
     On Error GoTo NotSelected
     List.SelectedItem.Tag = List.SelectedItem.Tag
     On Error GoTo NotClick
     List.HitTest(CX, CY).Tag = List.HitTest(CX, CY).Tag
     On Error GoTo 0
-    BuildPopup List.SelectedItem.Tag, Shift
+    BuildPopup List.SelectedItem.Tag, Shift, mnuPopup, mnuPItem
     PopupMenu mnuPopup, vbPopupMenuRightButton, , , mnuPItem(0)
 End If
 NotClick:
@@ -1877,9 +2118,9 @@ End Sub
 Private Sub List_OLECompleteDrag(Effect As Long)
 List.Tag = ""
 End Sub
-Private Sub List_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub List_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
 Dim Files() As String, ShortFiles() As String, bNum As Long, fNum As Long, Path As String, FolderFiles As String, Path2 As String, cNum As Long, FileFilter As String
-Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, hMPQ As Long
+Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, hMPQ As Long, dwFlags As Long
 If Data.GetFormat(ccCFFiles) <> True Then Exit Sub
 For fNum = 1 To Data.Files.Count
     Path = Data.Files.Item(fNum)
@@ -1931,6 +2172,7 @@ For bNum = 1 To Len(FolderFiles)
     End If
 Next bNum
 FoldName.Show 1
+If AddFolderName = Chr(0) + Chr(255) + Chr(127) + Chr(128) Then GoTo Cancel
 If UBound(Files) > 1 Then
     ReDim ShortFiles(UBound(Files)) As String
     For bNum = 0 To UBound(Files)
@@ -1958,25 +2200,29 @@ If NewFile = True Then
 End If
 List.Sorted = False
 FileFilter = mFilter
-hMPQ = Mpq.mOpenMpq(CD.FileName)
+hMPQ = mOpenMpq(CD.FileName)
 If hMPQ = 0 Then
     StatBar.SimpleText = "Can't create archive " + CD.FileName
     Exit Sub
 End If
+dwFlags = MAFA_REPLACE_EXISTING
+If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
 For bNum = 1 To UBound(Files)
     StatBar.Style = 1
     StatBar.SimpleText = "Adding " + Files(bNum) + "..."
     MousePointer = 11
     If mnuMCNone.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags, 0, 0
     ElseIf mnuMCStandard.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+    ElseIf mnuMCDeflate.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
     ElseIf mnuMCAMedium.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 1
     ElseIf mnuMCALowest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 2
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 2
     ElseIf mnuMCAuto.Checked Then
         mAddAutoFile hMPQ, Files(bNum), ShortFiles(bNum)
     End If
@@ -1989,9 +2235,9 @@ For bNum = 1 To UBound(Files)
         End If
     Next cNum
 Next bNum
-Mpq.mCloseMpq hMPQ
+MpqCloseUpdatedArchive hMPQ, 0
 If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
     StatBar.SimpleText = "Adding files to listing... 0% complete"
     For bNum = 1 To UBound(Files)
         If MatchesFilter(ShortFiles(bNum), FileFilter) Then
@@ -2001,7 +2247,7 @@ If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
         StatBar.SimpleText = "Adding files to listing... " + CStr(Int((bNum / UBound(Files)) * 100)) + "% complete"
         On Error GoTo 0
     Next bNum
-    Mpq.SFileCloseArchive hMPQ
+    SFileCloseArchive hMPQ
 End If
 StatBar.Style = 0
 StatBar.SimpleText = ""
@@ -2015,7 +2261,7 @@ RemoveDuplicates
 ShowTotal
 Cancel:
 End Sub
-Private Sub List_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single, State As Integer)
+Private Sub List_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single, State As Integer)
 If CD.FileName = "" Or Data.GetFormat(ccCFFiles) <> True Or List.Tag = "WinMPQ" Then
     Effect = ccOLEDropEffectNone
 Else
@@ -2038,13 +2284,15 @@ End If
 Path = Path + CStr(CopyPathNum) + "\"
 KillEx Path, "*", 6, True
 fCount = 0
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
 For fNum = 1 To List.ListItems.Count
     If List.ListItems.Item(fNum).Selected Then
         StatBar.Style = 1
         StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
         MousePointer = 11
-        Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+        sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale LocaleID
         If GetReg(AppKey + "UseDragDropWildcards", 1) = 0 Then
             Data.Files.Add Path + List.ListItems.Item(fNum).Tag
         End If
@@ -2052,7 +2300,7 @@ For fNum = 1 To List.ListItems.Count
         If fCount = 1 Then FirstFile = Path + List.ListItems.Item(fNum).Tag
     End If
 Next fNum
-Mpq.SFileCloseArchive hMPQ
+SFileCloseArchive hMPQ
 StatBar.Style = 0
 StatBar.SimpleText = ""
 MousePointer = 0
@@ -2078,7 +2326,6 @@ End Sub
 Private Sub mnuFile_Click()
 If FileExists(CD.FileName) Then mnuFReopen.Enabled = True Else mnuFReopen.Enabled = False
 End Sub
-
 Private Sub mnuFRecent_Click(Index As Integer)
 Dim OldFileName As String
 OldFileName = CD.FileName
@@ -2105,6 +2352,7 @@ CD.Flags = &H1000 Or &H4 Or &H2
 CD.Filter = "All Files (*.*)|*.*"
 OldFileName = CD.FileName
 OldPath = CurDir
+CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
 StatBar.Style = 1
 StatBar.SimpleText = "Running script " + CD.FileName + "..."
@@ -2133,10 +2381,11 @@ End If
 End Sub
 Private Sub mnuMAdd_Click()
 Dim Files() As String, ShortFiles() As String, bNum As Long, OldFileName As String, fNum As Long, cNum As Long, FileFilter As String
-Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, hMPQ As Long
+Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, hMPQ As Long, dwFlags As Long
 CD.Flags = OFN_EXPLORER Or &H1000 Or &H200 Or &H4 Or &H2
 CD.Filter = "All Files (*.*)|*.*"
 OldFileName = CD.FileName
+CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
 ReDim Files(0) As String
 bNum = 1
@@ -2158,6 +2407,7 @@ For bNum = bNum To Len(CD.FileName)
 Next bNum
 CD.FileName = OldFileName
 FoldName.Show 1
+If AddFolderName = Chr(0) + Chr(255) + Chr(127) + Chr(128) Then GoTo Cancel
 If UBound(Files) > 1 Then
     ReDim ShortFiles(UBound(Files)) As String
     For bNum = 0 To UBound(Files)
@@ -2185,25 +2435,29 @@ If NewFile = True Then
 End If
 List.Sorted = False
 FileFilter = mFilter
-hMPQ = Mpq.mOpenMpq(CD.FileName)
+hMPQ = mOpenMpq(CD.FileName)
 If hMPQ = 0 Then
     StatBar.SimpleText = "Can't create archive " + CD.FileName
     Exit Sub
 End If
+dwFlags = MAFA_REPLACE_EXISTING
+If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
 For bNum = 1 To UBound(Files)
     StatBar.Style = 1
     StatBar.SimpleText = "Adding " + Files(bNum) + "..."
     MousePointer = 11
     If mnuMCNone.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags, 0, 0
     ElseIf mnuMCStandard.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+    ElseIf mnuMCDeflate.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
     ElseIf mnuMCAMedium.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 1
     ElseIf mnuMCALowest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 2
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 2
     ElseIf mnuMCAuto.Checked Then
         mAddAutoFile hMPQ, Files(bNum), ShortFiles(bNum)
     End If
@@ -2216,9 +2470,9 @@ For bNum = 1 To UBound(Files)
         End If
     Next cNum
 Next bNum
-Mpq.mCloseMpq hMPQ
+MpqCloseUpdatedArchive hMPQ, 0
 If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
     StatBar.SimpleText = "Adding files to listing... 0% complete"
     For bNum = 1 To UBound(Files)
         If MatchesFilter(ShortFiles(bNum), FileFilter) Then
@@ -2228,7 +2482,7 @@ If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
         StatBar.SimpleText = "Adding files to listing... " + CStr(Int((bNum / UBound(Files)) * 100)) + "% complete"
         On Error GoTo 0
     Next bNum
-    Mpq.SFileCloseArchive hMPQ
+    SFileCloseArchive hMPQ
 End If
 StatBar.Style = 0
 StatBar.SimpleText = ""
@@ -2244,7 +2498,8 @@ Cancel:
 End Sub
 Private Sub mnuMAddFolder_Click()
 Dim Files() As String, ShortFiles() As String, bNum As Long, fNum As Long, Path As String, FolderFiles As String, cNum As Long, FileFilter As String, hMPQ As Long
-Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long
+Dim lIndex As Long, L1 As String, L2 As String, L3 As String, L4 As String, L5 As String, fSize As Long, cSize As Long, fFlags As Long, dwFlags As Long
+PathInput.hwndOwner = hWnd
 Path = PathInputBox(PathInput, "Folder to add files from...", CurDir)
 If Path = "" Then GoTo Cancel
 FolderFiles = DirEx(Path, "*", 6, True)
@@ -2263,6 +2518,7 @@ For bNum = 1 To Len(FolderFiles)
     End If
 Next bNum
 FoldName.Show 1
+If AddFolderName = Chr(0) + Chr(255) + Chr(127) + Chr(128) Then GoTo Cancel
 If UBound(Files) > 1 Then
     ReDim ShortFiles(UBound(Files)) As String
     For bNum = 0 To UBound(Files)
@@ -2290,25 +2546,29 @@ If NewFile = True Then
 End If
 List.Sorted = False
 FileFilter = mFilter
-hMPQ = Mpq.mOpenMpq(CD.FileName)
+hMPQ = mOpenMpq(CD.FileName)
 If hMPQ = 0 Then
     StatBar.SimpleText = "Can't create archive " + CD.FileName
     Exit Sub
 End If
+dwFlags = MAFA_REPLACE_EXISTING
+If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
 For bNum = 1 To UBound(Files)
     StatBar.Style = 1
     StatBar.SimpleText = "Adding " + Files(bNum) + "..."
     MousePointer = 11
     If mnuMCNone.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags, 0, 0
     ElseIf mnuMCStandard.Checked Then
-        Mpq.mAddFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+    ElseIf mnuMCDeflate.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
     ElseIf mnuMCAMedium.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 0
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 1
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 1
     ElseIf mnuMCALowest.Checked Then
-        Mpq.mAddWavFile hMPQ, Files(bNum), ShortFiles(bNum), 2
+        MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 2
     ElseIf mnuMCAuto.Checked Then
         mAddAutoFile hMPQ, Files(bNum), ShortFiles(bNum)
     End If
@@ -2321,9 +2581,9 @@ For bNum = 1 To UBound(Files)
         End If
     Next cNum
 Next bNum
-Mpq.mCloseMpq hMPQ
+MpqCloseUpdatedArchive hMPQ, 0
 If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
     StatBar.SimpleText = "Adding files to listing... 0% complete"
     For bNum = 1 To UBound(Files)
         If MatchesFilter(ShortFiles(bNum), FileFilter) Then
@@ -2333,7 +2593,7 @@ If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) Then
         StatBar.SimpleText = "Adding files to listing... " + CStr(Int((bNum / UBound(Files)) * 100)) + "% complete"
         On Error GoTo 0
     Next bNum
-    Mpq.SFileCloseArchive hMPQ
+    SFileCloseArchive hMPQ
 End If
 StatBar.Style = 0
 StatBar.SimpleText = ""
@@ -2347,9 +2607,14 @@ RemoveDuplicates
 ShowTotal
 Cancel:
 End Sub
+
+Private Sub mnuMAddToList_Click()
+frmAddToList.Show 1
+End Sub
 Private Sub mnuMCAHighest_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = True
@@ -2358,6 +2623,7 @@ End Sub
 Private Sub mnuMCALowest_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
 mnuMCALowest.Checked = True
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
@@ -2368,42 +2634,75 @@ End Sub
 Private Sub mnuMCAMedium_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = True
 mnuMCAHighest.Checked = False
 mnuMCAuto.Checked = False
 End Sub
-
 Private Sub mnuMCAuto_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
 mnuMCAuto.Checked = True
 End Sub
 
-Private Sub mnuMCNone_Click()
-mnuMCNone.Checked = True
+Private Sub mnuMCDeflate_Click()
+mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = True
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
 mnuMCAuto.Checked = False
 End Sub
 
+
+Private Sub mnuMChLCID_Click()
+Dim fNum As Long
+On Error GoTo NotSelected
+List.SelectedItem.Tag = List.SelectedItem.Tag
+On Error GoTo 0
+For fNum = 1 To List.ListItems.Count
+    If List.ListItems.Item(fNum).Selected Then
+        GoTo FileSelected
+    End If
+Next fNum
+GoTo NotSelected
+FileSelected:
+ChLCID.Show 1
+Exit Sub
+NotSelected:
+MsgBox "No files are selected.", , "WinMPQ"
+End Sub
+Private Sub mnuMCNone_Click()
+mnuMCNone.Checked = True
+mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
+mnuMCALowest.Checked = False
+mnuMCAMedium.Checked = False
+mnuMCAHighest.Checked = False
+mnuMCAuto.Checked = False
+End Sub
 Private Sub mnuMCompact_Click()
-Dim fNum As Long, Result As Long
+Dim fNum As Long, result As Long, hMPQ As Long
 If GetReg(AppKey + "ShowConfirmation", 1) = 0 Then
-    Result = vbYes
+    result = vbYes
 Else
-    Result = MsgBox("Uncompressed files with an 'X' in the attributes column and are not" + vbCrLf + "listed in (listfile) may be corrupted or deleted by the compacting process." + vbCrLf + "(Note:  These files are fairly rare)  Continue with compact?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
+    result = MsgBox("Uncompressed files with an 'X' in the attributes column and are not" + vbCrLf + "listed in (listfile) may be corrupted or deleted by the compacting process." + vbCrLf + "(Note:  These files are fairly rare)  Continue with compact?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
 End If
-If Result = vbYes Then
+If result = vbYes Then
     StatBar.Style = 1
     StatBar.SimpleText = "Compacting " + CD.FileName + "..."
     MousePointer = 11
-    Mpq.CompactMpq CD.FileName
+    hMPQ = mOpenMpq(CD.FileName)
+    If hMPQ Then
+        MpqCompactArchive hMPQ
+        MpqCloseUpdatedArchive hMPQ, 0
+    End If
     If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
     StatBar.Style = 0
     StatBar.SimpleText = ""
@@ -2414,12 +2713,14 @@ End Sub
 Private Sub mnuMCStandard_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = True
+mnuMCDeflate.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
+mnuMCAuto.Checked = False
 End Sub
 Private Sub mnuMDelete_Click()
-Dim fNum As Long, Result As Long
+Dim fNum As Long, result As Long, hMPQ As Long
 On Error GoTo NotSelected
 List.SelectedItem.Tag = List.SelectedItem.Tag
 On Error GoTo 0
@@ -2431,24 +2732,30 @@ Next fNum
 GoTo NotSelected
 FileSelected:
     If GetReg(AppKey + "ShowConfirmation", 1) = 0 Then
-        Result = vbYes
+        result = vbYes
     Else
-        Result = MsgBox("Delete file(s)?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
+        result = MsgBox("Delete file(s)?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
     End If
-    If Result = vbYes Then
+    If result = vbYes Then
         fNum = 1
-        Do While fNum <= List.ListItems.Count
-            If List.ListItems.Item(fNum).Selected Then
-                StatBar.Style = 1
-                StatBar.SimpleText = "Deleting " + List.ListItems.Item(fNum).Tag + "..."
-                MousePointer = 11
-                Mpq.DelFile CD.FileName, List.ListItems.Item(fNum).Tag
-                If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-                List.ListItems.Remove (fNum)
-                fNum = fNum - 1
-            End If
-            fNum = fNum + 1
-        Loop
+        hMPQ = mOpenMpq(CD.FileName)
+        If hMPQ Then
+            Do While fNum <= List.ListItems.Count
+                If List.ListItems.Item(fNum).Selected Then
+                    StatBar.Style = 1
+                    StatBar.SimpleText = "Deleting " + List.ListItems.Item(fNum).Tag + "..."
+                    MousePointer = 11
+                    SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+                    MpqDeleteFile hMPQ, List.ListItems.Item(fNum).Tag
+                    SFileSetLocale LocaleID
+                    If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+                    List.ListItems.Remove (fNum)
+                    fNum = fNum - 1
+                End If
+                fNum = fNum + 1
+            Loop
+            MpqCloseUpdatedArchive hMPQ, 0
+        End If
     End If
     StatBar.Style = 0
     StatBar.SimpleText = ""
@@ -2459,8 +2766,17 @@ Exit Sub
 NotSelected:
 MsgBox "No files are selected.", , "WinMPQ"
 End Sub
+Private Sub mnuMEncrypt_Click()
+If mnuMEncrypt.Checked = False Then
+    mnuMEncrypt.Checked = True
+    GlobalEncrypt = True
+Else
+    mnuMEncrypt.Checked = False
+    GlobalEncrypt = False
+End If
+End Sub
 Private Sub mnuMExtract_Click()
-Dim fNum As Long, Path As String, Result As Long, hMPQ As Long
+Dim fNum As Long, Path As String, result As Long, hMPQ As Long
 On Error GoTo NotSelected
 List.SelectedItem.Tag = List.SelectedItem.Tag
 On Error GoTo 0
@@ -2471,41 +2787,47 @@ For fNum = 1 To List.ListItems.Count
 Next fNum
 GoTo NotSelected
 FileSelected:
+PathInput.hwndOwner = hWnd
 Path = PathInputBox(PathInput, "Extract file(s) to...", CurDir)
 If Path = "" Then Exit Sub
 If Right(Path, 1) <> "\" Then Path = Path + "\"
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
 For fNum = 1 To List.ListItems.Count
     If List.ListItems.Item(fNum).Selected Then
         StatBar.Style = 1
         StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
         MousePointer = 11
-        Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+        sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale LocaleID
     End If
 Next fNum
-Mpq.SFileCloseArchive hMPQ
+SFileCloseArchive hMPQ
 StatBar.Style = 0
 StatBar.SimpleText = ""
 MousePointer = 0
 Exit Sub
 NotSelected:
 If GetReg(AppKey + "ShowConfirmation", 1) = 0 Then
-    Result = vbYes
+    result = vbYes
 Else
-    Result = MsgBox("No files are selected." + vbCrLf + "Extract all listed files?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
+    result = MsgBox("No files are selected." + vbCrLf + "Extract all listed files?", vbYesNo Or vbQuestion Or vbDefaultButton2, "WinMPQ")
 End If
-If Result = vbYes Then
+If result = vbYes Then
+    PathInput.hwndOwner = hWnd
     Path = PathInputBox(PathInput, "Extract file(s) to...", CurDir)
     If Path = "" Then Exit Sub
     If Right(Path, 1) <> "\" Then Path = Path + "\"
-    If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+    If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
     For fNum = 1 To List.ListItems.Count
         StatBar.Style = 1
         StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
         MousePointer = 11
-        Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+        sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+        SFileSetLocale LocaleID
     Next fNum
-    Mpq.SFileCloseArchive hMPQ
+    SFileCloseArchive hMPQ
     StatBar.Style = 0
     StatBar.SimpleText = ""
     MousePointer = 0
@@ -2516,6 +2838,7 @@ Dim TItem As Menu
 CD.Flags = &H1000 Or &H4 Or &H2
 CD.DefaultExt = "mpq"
 CD.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m|All Files (*.*)|*.*"
+CD.hwndOwner = hWnd
 If ShowSave(CD) = False Then GoTo Cancel
 ReDim FileList(0) As String
 List.ListItems.Clear
@@ -2541,10 +2864,14 @@ Dim OldFileName As String
 CD.Flags = &H1000 Or &H4 Or &H2
 CD.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m|All Files (*.*)|*.*"
 OldFileName = CD.FileName
+CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
 OpenMpq
 If CD.FileName = "" Then CD.FileName = OldFileName
 Cancel:
+End Sub
+Private Sub mnuMItem_Click(Index As Integer)
+FileActionClick mnuMpq, mnuMItem, Index
 End Sub
 Private Sub mnuMRename_Click()
 List.StartLabelEdit
@@ -2556,6 +2883,7 @@ CD.DefaultExt = "txt"
 CD.Filter = "Text File (*.txt)|*.txt|All Files (*.*)|*.*"
 OldFileName = CD.FileName
 CD.FileName = CD.FileName + ".txt"
+CD.hwndOwner = hWnd
 If ShowSave(CD) = False Then GoTo Cancel
 StatBar.Style = 1
 StatBar.SimpleText = "Creating list..."
@@ -2576,6 +2904,10 @@ End Sub
 Private Sub mnuOptions_Click()
 Options.Show 1
 End Sub
+
+Private Sub mnuPChLCID_Click()
+mnuMChLCID_Click
+End Sub
 Private Sub mnuPDelete_Click()
 mnuMDelete_Click
 End Sub
@@ -2583,56 +2915,14 @@ Private Sub mnuPExtract_Click()
 mnuMExtract_Click
 End Sub
 Private Sub mnuPItem_Click(Index As Integer)
-Dim fNum As Long, Path As String, fName As String, fName2 As String, bNum As Long, AlreadyInList As Boolean, hMPQ As Long
-Path = App.Path
-If Right(Path, 1) <> "\" Then Path = Path + "\"
-Path = Path + "Temp_extract\"
-If ExtractPathNum = -1 Then
-    fNum = 0
-    Do
-    If DirEx(Path + CStr(fNum), "*", 6, True) = "" Then Exit Do
-    fNum = fNum + 1
-    Loop
-    ExtractPathNum = fNum
-End If
-Path = Path + CStr(ExtractPathNum) + "\"
-If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
-For fNum = 1 To List.ListItems.Count
-    If List.ListItems.Item(fNum).Selected Then
-        StatBar.Style = 1
-        StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
-        MousePointer = 11
-        Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
-        If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then
-            For bNum = 1 To UBound(OpenFiles)
-                If LCase(OpenFiles(bNum)) = LCase(List.ListItems.Item(fNum).Tag) Then
-                    AlreadyInList = True
-                    If FileExists(FullPath(Path, List.ListItems.Item(fNum).Tag)) Then OpenFileDates(bNum) = FileDateTime(FullPath(Path, List.ListItems.Item(fNum).Tag))
-                    Exit For
-                End If
-            Next bNum
-            If AlreadyInList = False Then
-                ReDim Preserve OpenFiles(UBound(OpenFiles) + 1) As String, OpenFileDates(UBound(OpenFileDates) + 1) As Date
-                OpenFiles(UBound(OpenFiles)) = List.ListItems.Item(fNum).Tag
-                If FileExists(FullPath(Path, List.ListItems.Item(fNum).Tag)) Then OpenFileDates(UBound(OpenFileDates)) = FileDateTime(FullPath(Path, List.ListItems.Item(fNum).Tag))
-            End If
-        End If
-        StatBar.Style = 1
-        StatBar.SimpleText = "Opening " + List.ListItems.Item(fNum).Tag + "..."
-        fName = List.ListItems.Item(fNum).Tag
-        ExecuteFile Path + fName, Index
-        If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then Timer1.Enabled = True
-    End If
-Next fNum
-Mpq.SFileCloseArchive hMPQ
-StatBar.Style = 0
-StatBar.SimpleText = ""
-MousePointer = 0
+FileActionClick mnuPopup, mnuPItem, Index
 End Sub
 Private Sub mnuPRename_Click()
 mnuMRename_Click
 End Sub
-
+Private Sub mnuPTItem_Click(Index As Integer)
+mnuTItem_Click Index
+End Sub
 Private Sub mnuTAdd_Click()
 ToolList.Show 1
 BuildToolsList
@@ -2668,13 +2958,15 @@ If FileName <> "" And (InStr(Param, "%1") Or (InStr(Param, "%1") = 0 And InStr(1
         ExtractPathNum = fNum
     End If
     Path = Path + CStr(ExtractPathNum) + "\"
-    If Mpq.SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
+    If SFileOpenArchive(CD.FileName, 0, 0, hMPQ) = 0 Then Exit Sub
     For fNum = 1 To List.ListItems.Count
         If List.ListItems.Item(fNum).Selected Then
             StatBar.Style = 1
             StatBar.SimpleText = "Extracting " + List.ListItems.Item(fNum).Tag + "..."
             MousePointer = 11
-            Mpq.sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+            SFileSetLocale List.ListItems.Item(fNum).ListSubItems(4).Tag
+            sGetFile hMPQ, List.ListItems.Item(fNum).Tag, Path, True
+            SFileSetLocale LocaleID
             If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then
                 For bNum = 1 To UBound(OpenFiles)
                     If LCase(OpenFiles(bNum)) = LCase(List.ListItems.Item(fNum).Tag) Then
@@ -2721,7 +3013,7 @@ If FileName <> "" And (InStr(Param, "%1") Or (InStr(Param, "%1") = 0 And InStr(1
             If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then Timer1.Enabled = True
         End If
     Next fNum
-    Mpq.SFileCloseArchive hMPQ
+    SFileCloseArchive hMPQ
 ElseIf InStr(1, mnuTItem(Index).Tag, "%mpq", 1) Then
     If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
     On Error GoTo NoProgram
@@ -2740,8 +3032,12 @@ Exit Sub
 NoProgram:
 If Err.Number = 53 Then MsgBox "No program is assigned for this action.", , "WinMPQ"
 End Sub
+
+Private Sub mnuTMpqEmbed_Click()
+frmMpq.Show
+End Sub
 Private Sub Timer1_Timer()
-Dim fNum As Long, Path As String, Result As Long, bNum As Long
+Dim fNum As Long, Path As String, result As Long, bNum As Long, hMPQ As Long, dwFlags As Long
 If Screen.ActiveForm.Name <> "MpqEx" Then Exit Sub
 Path = App.Path
 If Right(Path, 1) <> "\" Then Path = Path + "\"
@@ -2751,37 +3047,47 @@ For fNum = 1 To UBound(OpenFiles)
     If FileExists(FullPath(Path, OpenFiles(fNum))) Then
         If FileDateTime(FullPath(Path, OpenFiles(fNum))) > OpenFileDates(fNum) Then
             If GetReg(AppKey + "ShowConfirmation", 1) = 0 Then
-                Result = vbYes
+                result = vbYes
             Else
-            Result = MsgBox("File " + OpenFiles(fNum) + " has been changed since it was extracted." + vbCrLf + vbCrLf + "Update archive with this file?", vbYesNo Or vbInformation, "WinMPQ")
+            result = MsgBox("File " + OpenFiles(fNum) + " has been changed since it was extracted." + vbCrLf + vbCrLf + "Update archive with this file?", vbYesNo Or vbInformation, "WinMPQ")
             End If
-            OpenFileDates(fNum) = FileDateTime(FullPath(Path, OpenFiles(fNum)))
-            If Result = vbYes Then
-                List.Sorted = False
-                StatBar.Style = 1
-                StatBar.SimpleText = "Adding " + OpenFiles(fNum) + "..."
-                MousePointer = 11
-                If mnuMCNone.Checked Then
-                    Mpq.AddFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), 0
-                ElseIf mnuMCStandard.Checked Then
-                    Mpq.AddFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), 1
-                ElseIf mnuMCAMedium.Checked Then
-                    Mpq.AddWavFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), 0
-                ElseIf mnuMCAHighest.Checked Then
-                    Mpq.AddWavFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), 1
-                ElseIf mnuMCALowest.Checked Then
-                    Mpq.AddWavFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), 2
-                ElseIf mnuMCAuto.Checked Then
-                    AddAutoFile CD.FileName, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum)
+            If FileExists(FullPath(Path, OpenFiles(fNum))) Then
+                OpenFileDates(fNum) = FileDateTime(FullPath(Path, OpenFiles(fNum)))
+                If result = vbYes Then
+                    List.Sorted = False
+                    StatBar.Style = 1
+                    StatBar.SimpleText = "Adding " + OpenFiles(fNum) + "..."
+                    MousePointer = 11
+                    dwFlags = MAFA_REPLACE_EXISTING
+                    If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
+                    hMPQ = mOpenMpq(CD.FileName)
+                    If hMPQ Then
+                        If mnuMCNone.Checked Then
+                            MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags, 0, 0
+                        ElseIf mnuMCStandard.Checked Then
+                            MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+                        ElseIf mnuMCDeflate.Checked Then
+                            MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+                        ElseIf mnuMCAMedium.Checked Then
+                            MpqAddWaveToArchive hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, 0
+                        ElseIf mnuMCAHighest.Checked Then
+                            MpqAddWaveToArchive hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, 1
+                        ElseIf mnuMCALowest.Checked Then
+                            MpqAddWaveToArchive hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, 2
+                        ElseIf mnuMCAuto.Checked Then
+                            mAddAutoFile hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum)
+                        End If
+                    End If
+                    MpqAddToListing hMPQ, OpenFiles(fNum)
+                    MpqCloseUpdatedArchive hMPQ, 0
+                    If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
+                    StatBar.Style = 0
+                    StatBar.SimpleText = ""
+                    MousePointer = 0
+                    List.Sorted = True
+                    RemoveDuplicates
+                    ShowTotal
                 End If
-                If FileExists(CD.FileName) Then MpqDate = FileDateTime(CD.FileName)
-                AddToListing OpenFiles(fNum)
-                StatBar.Style = 0
-                StatBar.SimpleText = ""
-                MousePointer = 0
-                List.Sorted = True
-                RemoveDuplicates
-                ShowTotal
             End If
         End If
     Else

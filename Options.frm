@@ -41,14 +41,15 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4995
-      TabIndex        =   3
+      TabIndex        =   34
+      TabStop         =   0   'False
       Top             =   480
       Width           =   4995
       Begin VB.TextBox Text1 
          Height          =   285
          Left            =   0
          MaxLength       =   6
-         TabIndex        =   9
+         TabIndex        =   3
          Text            =   "1024"
          Top             =   600
          Width           =   1215
@@ -56,7 +57,7 @@ Begin VB.Form Options
       Begin VB.TextBox Text2 
          Height          =   285
          Left            =   0
-         TabIndex        =   8
+         TabIndex        =   4
          Text            =   "0"
          Top             =   1200
          Width           =   1215
@@ -65,7 +66,7 @@ Begin VB.Form Options
          Caption         =   "&Associate WinMPQ with MPQ Archives"
          Height          =   255
          Left            =   0
-         TabIndex        =   7
+         TabIndex        =   5
          Top             =   1680
          Value           =   2  'Grayed
          Width           =   3375
@@ -74,7 +75,7 @@ Begin VB.Form Options
          Caption         =   "Use &wildcards in filenames for drag and drop"
          Height          =   255
          Left            =   0
-         TabIndex        =   6
+         TabIndex        =   7
          Top             =   2400
          Value           =   2  'Grayed
          Width           =   3735
@@ -83,44 +84,35 @@ Begin VB.Form Options
          Caption         =   "Automatically update &modified files"
          Height          =   255
          Left            =   0
-         TabIndex        =   5
+         TabIndex        =   6
          Top             =   2160
          Value           =   2  'Grayed
          Width           =   3015
-      End
-      Begin VB.CheckBox Check6 
-         Caption         =   "&Load extra file information (disable this for quicker MPQ load times)"
-         Height          =   255
-         Left            =   0
-         TabIndex        =   4
-         Top             =   1920
-         Value           =   2  'Grayed
-         Width           =   4995
       End
       Begin VB.Label Label1 
          AutoSize        =   -1  'True
          Caption         =   "Maximum files for new archives: (this cannot be changed for an existing archive)"
          Height          =   495
          Left            =   0
-         TabIndex        =   12
+         TabIndex        =   37
          Top             =   120
          Width           =   4335
          WordWrap        =   -1  'True
       End
       Begin VB.Label Label2 
          AutoSize        =   -1  'True
-         Caption         =   "Locale ID for extracting"
+         Caption         =   "Locale ID for adding files"
          Height          =   195
          Left            =   0
-         TabIndex        =   11
+         TabIndex        =   36
          Top             =   960
-         Width           =   1650
+         Width           =   1755
       End
       Begin VB.Label Label3 
          Caption         =   $"Options.frx":000C
          Height          =   855
          Left            =   0
-         TabIndex        =   10
+         TabIndex        =   35
          Top             =   2640
          Width           =   4935
       End
@@ -132,15 +124,24 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   23
+      TabIndex        =   40
+      TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
       Width           =   4935
+      Begin VB.CommandButton cmdAddFolder 
+         Caption         =   "Add &Folder..."
+         Height          =   375
+         Left            =   3480
+         TabIndex        =   10
+         Top             =   1320
+         Width           =   1335
+      End
       Begin VB.CheckBox Check8 
          Caption         =   "Do not use above lists when one is found by above option"
          Height          =   375
          Left            =   0
-         TabIndex        =   49
+         TabIndex        =   13
          Top             =   2880
          Value           =   2  'Grayed
          Width           =   3375
@@ -149,7 +150,7 @@ Begin VB.Form Options
          Caption         =   "Use file lists for similarly named archives"
          Height          =   195
          Left            =   0
-         TabIndex        =   48
+         TabIndex        =   12
          Top             =   2640
          Width           =   3375
       End
@@ -157,14 +158,14 @@ Begin VB.Form Options
          Caption         =   "&Remove"
          Height          =   375
          Left            =   3480
-         TabIndex        =   45
-         Top             =   1440
+         TabIndex        =   11
+         Top             =   1920
          Width           =   1335
       End
       Begin VB.ListBox FileLists 
          Height          =   2205
          Left            =   0
-         TabIndex        =   44
+         TabIndex        =   8
          Top             =   360
          Width           =   3375
       End
@@ -172,15 +173,15 @@ Begin VB.Form Options
          Caption         =   "&Add List File..."
          Height          =   375
          Left            =   3480
-         TabIndex        =   24
-         Top             =   840
+         TabIndex        =   9
+         Top             =   720
          Width           =   1335
       End
       Begin VB.Label Label11 
          Caption         =   "Note:  Each file list added will increase the load time for archives."
          Height          =   255
          Left            =   0
-         TabIndex        =   47
+         TabIndex        =   51
          Top             =   3240
          Width           =   4815
       End
@@ -189,7 +190,7 @@ Begin VB.Form Options
          Caption         =   "File Lists:"
          Height          =   195
          Left            =   0
-         TabIndex        =   46
+         TabIndex        =   50
          Top             =   120
          Width           =   645
       End
@@ -201,7 +202,8 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   13
+      TabIndex        =   38
+      TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
       Width           =   4935
@@ -209,7 +211,7 @@ Begin VB.Form Options
          Caption         =   "&Reset size/position"
          Height          =   375
          Left            =   360
-         TabIndex        =   22
+         TabIndex        =   16
          Top             =   840
          Width           =   1695
       End
@@ -217,7 +219,7 @@ Begin VB.Form Options
          Caption         =   "Display &confirmation boxes"
          Height          =   255
          Left            =   0
-         TabIndex        =   21
+         TabIndex        =   14
          Top             =   120
          Value           =   2  'Grayed
          Width           =   2415
@@ -226,7 +228,7 @@ Begin VB.Form Options
          Caption         =   "&Save last window size and position"
          Height          =   255
          Left            =   0
-         TabIndex        =   20
+         TabIndex        =   15
          Top             =   480
          Value           =   2  'Grayed
          Width           =   3015
@@ -235,7 +237,7 @@ Begin VB.Form Options
          Caption         =   "Startup Path"
          Height          =   1215
          Left            =   0
-         TabIndex        =   14
+         TabIndex        =   39
          Top             =   2280
          Width           =   4935
          Begin VB.OptionButton Option1 
@@ -243,7 +245,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   0
             Left            =   120
-            TabIndex        =   19
+            TabIndex        =   17
             Top             =   240
             Value           =   -1  'True
             Width           =   1575
@@ -262,7 +264,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   2
             Left            =   120
-            TabIndex        =   17
+            TabIndex        =   19
             Top             =   480
             Width           =   1695
          End
@@ -270,7 +272,7 @@ Begin VB.Form Options
             Enabled         =   0   'False
             Height          =   285
             Left            =   120
-            TabIndex        =   16
+            TabIndex        =   20
             Top             =   840
             Width           =   3615
          End
@@ -279,7 +281,7 @@ Begin VB.Form Options
             Enabled         =   0   'False
             Height          =   285
             Left            =   3840
-            TabIndex        =   15
+            TabIndex        =   21
             Top             =   840
             Width           =   975
          End
@@ -292,7 +294,8 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   26
+      TabIndex        =   42
+      TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
       Width           =   4935
@@ -300,14 +303,14 @@ Begin VB.Form Options
          Height          =   1215
          IntegralHeight  =   0   'False
          Left            =   3120
-         TabIndex        =   38
+         TabIndex        =   23
          Top             =   2280
          Width           =   1815
       End
       Begin MSComctlLib.ListView FileTypes 
          Height          =   2535
          Left            =   0
-         TabIndex        =   43
+         TabIndex        =   22
          Top             =   960
          Width           =   3015
          _ExtentX        =   5318
@@ -334,7 +337,7 @@ Begin VB.Form Options
          Caption         =   "File extensions:"
          Height          =   195
          Left            =   3120
-         TabIndex        =   42
+         TabIndex        =   49
          Top             =   960
          Width           =   1080
       End
@@ -343,14 +346,14 @@ Begin VB.Form Options
          Caption         =   "Default action:"
          Height          =   195
          Left            =   3120
-         TabIndex        =   40
+         TabIndex        =   47
          Top             =   2040
          Width           =   1035
       End
       Begin VB.Label Label8 
          Height          =   855
          Left            =   3120
-         TabIndex        =   41
+         TabIndex        =   48
          Top             =   1200
          Width           =   1755
       End
@@ -359,7 +362,7 @@ Begin VB.Form Options
          Caption         =   $"Options.frx":00F6
          Height          =   855
          Left            =   0
-         TabIndex        =   39
+         TabIndex        =   46
          Top             =   120
          Width           =   4935
          WordWrap        =   -1  'True
@@ -372,24 +375,45 @@ Begin VB.Form Options
       Left            =   240
       ScaleHeight     =   3495
       ScaleWidth      =   4935
-      TabIndex        =   25
+      TabIndex        =   41
+      TabStop         =   0   'False
       Top             =   480
       Visible         =   0   'False
       Width           =   4935
+      Begin VB.ComboBox Combo3 
+         Height          =   315
+         ItemData        =   "Options.frx":01CE
+         Left            =   2880
+         List            =   "Options.frx":01F3
+         Style           =   2  'Dropdown List
+         TabIndex        =   33
+         Top             =   3120
+         Width           =   1815
+      End
+      Begin VB.ComboBox Combo2 
+         Height          =   315
+         ItemData        =   "Options.frx":0245
+         Left            =   1200
+         List            =   "Options.frx":024F
+         Style           =   2  'Dropdown List
+         TabIndex        =   32
+         Top             =   3120
+         Width           =   1455
+      End
       Begin VB.ListBox List1 
          Height          =   1815
-         ItemData        =   "Options.frx":01CE
+         ItemData        =   "Options.frx":0266
          Left            =   0
-         List            =   "Options.frx":01D0
+         List            =   "Options.frx":0268
          Sorted          =   -1  'True
-         TabIndex        =   35
+         TabIndex        =   26
          Top             =   720
          Width           =   1575
       End
       Begin VB.TextBox Text4 
          Height          =   285
          Left            =   0
-         TabIndex        =   34
+         TabIndex        =   24
          Top             =   360
          Width           =   855
       End
@@ -397,7 +421,7 @@ Begin VB.Form Options
          Caption         =   "&Add"
          Height          =   285
          Left            =   960
-         TabIndex        =   33
+         TabIndex        =   25
          Top             =   360
          Width           =   615
       End
@@ -405,18 +429,18 @@ Begin VB.Form Options
          Caption         =   "&Remove"
          Height          =   255
          Left            =   0
-         TabIndex        =   32
+         TabIndex        =   27
          Top             =   2640
          Width           =   1095
       End
       Begin VB.ComboBox Combo1 
          Enabled         =   0   'False
          Height          =   315
-         ItemData        =   "Options.frx":01D2
+         ItemData        =   "Options.frx":026A
          Left            =   1800
-         List            =   "Options.frx":01DF
+         List            =   "Options.frx":027A
          Style           =   2  'Dropdown List
-         TabIndex        =   31
+         TabIndex        =   28
          Top             =   720
          Width           =   2535
       End
@@ -424,7 +448,7 @@ Begin VB.Form Options
          Caption         =   "Audio Compression"
          Height          =   1335
          Left            =   1800
-         TabIndex        =   27
+         TabIndex        =   43
          Top             =   1200
          Visible         =   0   'False
          Width           =   2535
@@ -443,7 +467,7 @@ Begin VB.Form Options
             Height          =   255
             Index           =   1
             Left            =   120
-            TabIndex        =   29
+            TabIndex        =   31
             Top             =   960
             Width           =   2175
          End
@@ -452,16 +476,34 @@ Begin VB.Form Options
             Height          =   255
             Index           =   2
             Left            =   120
-            TabIndex        =   28
+            TabIndex        =   29
             Top             =   240
             Width           =   2175
          End
+      End
+      Begin VB.Label ZLibLabel 
+         AutoSize        =   -1  'True
+         Caption         =   "Deflate Compression Level"
+         Height          =   195
+         Left            =   2880
+         TabIndex        =   53
+         Top             =   2880
+         Width           =   1890
+      End
+      Begin VB.Label Label12 
+         AutoSize        =   -1  'True
+         Caption         =   "Default Compression"
+         Height          =   195
+         Left            =   1200
+         TabIndex        =   52
+         Top             =   2880
+         Width           =   1455
       End
       Begin VB.Label Label5 
          Caption         =   "Compression type"
          Height          =   255
          Left            =   1800
-         TabIndex        =   37
+         TabIndex        =   45
          Top             =   480
          Width           =   1935
       End
@@ -469,7 +511,7 @@ Begin VB.Form Options
          Caption         =   "File Extension"
          Height          =   255
          Left            =   0
-         TabIndex        =   36
+         TabIndex        =   44
          Top             =   120
          Width           =   1215
       End
@@ -522,12 +564,12 @@ Private Sub Check8_Click()
 If Check8.Value = 1 Then Check8.Value = 2
 End Sub
 Private Sub cmdAdd_Click()
-Dim eNum As Integer
+Dim xNum As Integer
 If Text4 <> "" Then
     If Left(Text4, 1) <> "." Then Text4 = "." + Text4
-    For eNum = 1 To UBound(NewExtNames)
-        If Text4 = NewExtNames(eNum) Then Exit Sub
-    Next eNum
+    For xNum = 1 To UBound(NewExtNames)
+        If Text4 = NewExtNames(xNum) Then Exit Sub
+    Next xNum
     List1.AddItem Text4
     ReDim Preserve NewExtNames(UBound(NewExtNames) + 1) As String
     NewExtNames(UBound(NewExtNames)) = Text4
@@ -536,10 +578,29 @@ If Text4 <> "" Then
     Text4 = ""
 End If
 End Sub
+
+Private Sub cmdAddFolder_Click()
+Dim lNum As Long
+Dim Path As String
+PathInput.hwndOwner = hWnd
+Path = PathInputBox(PathInput, "Add Listfile Folder", "")
+If Path = "" Then GoTo Cancel
+FileLists.AddItem Path
+If FileLists.ListCount > 0 Then
+    NewListFile = FileLists.List(0)
+Else
+    NewListFile = ""
+End If
+For lNum = 1 To FileLists.ListCount - 1
+    NewListFile = NewListFile + vbCrLf + FileLists.List(lNum)
+Next lNum
+Cancel:
+End Sub
 Private Sub cmdAddList_Click()
 Dim lNum As Long
 CD.Flags = &H1000 Or &H4 Or &H2
 CD.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
 FileLists.AddItem CD.FileName
 If FileLists.ListCount > 0 Then
@@ -567,26 +628,30 @@ If FileLists.ListIndex > -1 Then
 End If
 End Sub
 Private Sub Combo1_Click()
-Dim eNum As Integer
-For eNum = 1 To UBound(NewExtNames)
-    If List1.List(List1.ListIndex) = NewExtNames(eNum) Then Exit For
-Next eNum
-If UBound(NewExtNames) = 0 Then eNum = 0
-If Combo1.ListIndex = 2 Then
+Dim xNum As Integer
+For xNum = 1 To UBound(NewExtNames)
+    If List1.List(List1.ListIndex) = NewExtNames(xNum) Then Exit For
+Next xNum
+If UBound(NewExtNames) = 0 Then xNum = 0
+If Combo1.ListIndex = 3 Then
     Frame2.Visible = True
-    NewExtComp(eNum) = Combo1.ListIndex - 2
+    NewExtComp(xNum) = Combo1.ListIndex - 3
 Else
     Frame2.Visible = False
-    NewExtComp(eNum) = Combo1.ListIndex - 2
+    If Combo1.ListIndex < 2 Then
+        NewExtComp(xNum) = Combo1.ListIndex - 2
+    Else
+        NewExtComp(xNum) = -3
+    End If
 End If
 End Sub
 Private Sub AudioC_Click(Index As Integer)
-Dim eNum As Integer
-For eNum = 1 To UBound(NewExtNames)
-    If List1.List(List1.ListIndex) = NewExtNames(eNum) Then Exit For
-Next eNum
-If UBound(NewExtNames) = 0 Then eNum = 0
-NewExtComp(eNum) = Index
+Dim xNum As Integer
+For xNum = 1 To UBound(NewExtNames)
+    If List1.List(List1.ListIndex) = NewExtNames(xNum) Then Exit For
+Next xNum
+If UBound(NewExtNames) = 0 Then xNum = 0
+NewExtComp(xNum) = Index
 End Sub
 Private Sub Check1_Click()
 If Check1.Value = 1 Then Check1.Value = 2
@@ -607,21 +672,17 @@ End Sub
 Private Sub Check5_Click()
 If Check5.Value = 1 Then Check5.Value = 2
 End Sub
-
-Private Sub Check6_Click()
-If Check6.Value = 1 Then Check6.Value = 2
-End Sub
 Private Sub Command1_Click()
 Dim Path As String, BatKey As String
-Dim eNum As Integer, ExtList As String
+Dim xNum As Integer, ExtList As String
 Dim dItem As String, ndItem As String, aNum As Long
 Path = App.Path
 If Right(Path, 1) <> "\" Then Path = Path + "\"
 Text1_LostFocus
 Text2_LostFocus
-MpqEx.Mpq.DefaultMaxFiles = Text1
+DefaultMaxFiles = Text1
 LocaleID = Text2
-MpqEx.Mpq.SetLocale (LocaleID)
+SFileSetLocale (LocaleID)
 NewKey AppKey
 SetReg AppKey + "DefaultMaxFiles", Text1, REG_DWORD
 SetReg AppKey + "LocaleID", Text2, REG_DWORD
@@ -645,11 +706,6 @@ If Check5.Value > 0 Then
 Else
     SetReg AppKey + "CheckModDateTime", 0, REG_DWORD
     MpqEx.Timer1.Enabled = False
-End If
-If Check6.Value > 0 Then
-    SetReg AppKey + "LoadExtraInfo", 1, REG_DWORD
-Else
-    SetReg AppKey + "LoadExtraInfo", 0, REG_DWORD
 End If
 If Check7.Value > 0 Then
     SetReg AppKey + "AutofindFileLists", 1, REG_DWORD
@@ -709,12 +765,23 @@ If IsDir(Path) Then
     SetReg AppKey + "StartupPath", Text3
     ChDir Text3
 End If
+Select Case Combo2.ListIndex
+Case 0
+DefaultCompressID = -1
+DefaultCompress = MAFA_COMPRESS_STANDARD
+Case 1
+DefaultCompressID = -3
+DefaultCompress = MAFA_COMPRESS_DEFLATE
+End Select
+DefaultCompressLevel = Combo3.ListIndex - 1
+SetReg AppKey + "DefaultCompress", DefaultCompressID, REG_DWORD
+SetReg AppKey + "DefaultZlibLevel", DefaultCompressLevel, REG_DWORD
 DelKey AppKey + "Compression\"
 NewKey AppKey + "Compression\"
-For eNum = 1 To UBound(NewExtNames)
-    ExtList = ExtList + NewExtNames(eNum)
-    SetReg AppKey + "Compression\" + NewExtNames(eNum), CStr(NewExtComp(eNum))
-Next eNum
+For xNum = 1 To UBound(NewExtNames)
+    ExtList = ExtList + NewExtNames(xNum)
+    SetReg AppKey + "Compression\" + NewExtNames(xNum), CStr(NewExtComp(xNum))
+Next xNum
 SetReg AppKey + "Compression\List", ExtList
 NewKey SharedAppKey + "FileDefaultActions\"
 For aNum = 1 To FileTypes.ListItems.Count
@@ -745,24 +812,23 @@ DelReg AppKey + "Status\WindowTop"
 DelReg AppKey + "Status\WindowWidth"
 Check1.Value = 0
 End Sub
-
 Private Sub Command5_Click()
 Dim Path As String
+PathInput.hwndOwner = hWnd
 Path = PathInputBox(PathInput, "WinMPQ Startup Path", Text3)
 If Path <> "" Then Text3 = Path
 End Sub
-
 Private Sub Command6_Click()
-Dim eNum As Integer
+Dim xNum As Integer
 If List1.ListIndex > -1 Then
-    For eNum = 1 To UBound(NewExtNames)
-        If List1.List(List1.ListIndex) = NewExtNames(eNum) Then Exit For
-    Next eNum
-    If eNum < UBound(NewExtNames) Then
-        For eNum = eNum To UBound(NewExtNames) - 1
-            NewExtNames(eNum) = NewExtNames(eNum + 1)
-            NewExtComp(eNum) = NewExtComp(eNum + 1)
-        Next eNum
+    For xNum = 1 To UBound(NewExtNames)
+        If List1.List(List1.ListIndex) = NewExtNames(xNum) Then Exit For
+    Next xNum
+    If xNum < UBound(NewExtNames) Then
+        For xNum = xNum To UBound(NewExtNames) - 1
+            NewExtNames(xNum) = NewExtNames(xNum + 1)
+            NewExtComp(xNum) = NewExtComp(xNum + 1)
+        Next xNum
     End If
     ReDim Preserve NewExtNames(UBound(NewExtNames) - 1) As String
     ReDim Preserve NewExtComp(UBound(NewExtComp) - 1) As Integer
@@ -773,7 +839,8 @@ End Sub
 Private Sub Form_Load()
 Dim Path As String, PathType As Integer, NewFileListNames As String
 Dim ExtList As String
-Dim aExt As String, aName As String, aNum As Long
+Dim aExt As String, aName As String, aNum As Long, DCompType As Long
+On Error Resume Next
 Left = MpqEx.Left + 330
 If Left < 0 Then Left = 0
 If Left + Width > Screen.Width Then Left = Screen.Width - Width
@@ -782,7 +849,7 @@ If Top < 0 Then Top = 0
 If Top + Height > Screen.Height Then Top = Screen.Height - Height
 Path = App.Path
 If Right(Path, 1) <> "\" Then Path = Path + "\"
-Text1 = MpqEx.Mpq.DefaultMaxFiles
+Text1 = DefaultMaxFiles
 Text2 = LocaleID
 OldFileName = CD.FileName
 CD.FileName = ""
@@ -790,14 +857,14 @@ NewListFile = GetReg(AppKey + "ListFile", Path + "mpq_data.txt")
 For aNum = 1 To Len(NewListFile)
     If InStr(aNum, NewListFile, vbCrLf) Then
         aName = Mid(NewListFile, aNum, InStr(aNum, NewListFile, vbCrLf) - aNum)
-        If FileExists(aName) Then
+        If FileExists(aName) Or IsDir(aName) Then
             FileLists.AddItem aName
             NewFileListNames = NewFileListNames + aName + vbCrLf
         End If
         aNum = InStr(aNum, NewListFile, vbCrLf) + 1
     Else
         aName = Mid(NewListFile, aNum)
-        If FileExists(aName) Then
+        If FileExists(aName) Or IsDir(aName) Then
             FileLists.AddItem aName
             NewFileListNames = NewFileListNames + aName
         End If
@@ -810,7 +877,6 @@ If GetReg(AppKey + "SaveWindowStatus", 1) > 0 Then Check1.Value = 1 Else Check1.
 If GetReg(AppKey + "ShowConfirmation", 1) > 0 Then Check3.Value = 1 Else Check3.Value = 0
 If GetReg(AppKey + "UseDragDropWildcards", 1) > 0 Then Check4.Value = 1 Else Check4.Value = 0
 If GetReg(AppKey + "CheckModDateTime", 1) > 0 Then Check5.Value = 1 Else Check5.Value = 0
-If GetReg(AppKey + "LoadExtraInfo", 1) > 0 Then Check6.Value = 1 Else Check6.Value = 0
 If GetReg(AppKey + "AutofindFileLists", 0) > 0 Then Check7.Value = 1 Else Check7.Value = 0
 If GetReg(AppKey + "UseOnlyAutofindLists", 1) > 0 Then Check8.Value = 1 Else Check8.Value = 0
 If GetReg("HKEY_CLASSES_ROOT\.mpq\", "Mpq.Archive") = "Mpq.Archive" And InStr(1, GetReg("HKEY_CLASSES_ROOT\Mpq.Archive\shell\open\command\", Chr(34) + Path + App.EXEName + ".exe" + Chr(34) + " " + Chr(34) + "%1" + Chr(34)), App.EXEName + ".exe", 1) > 0 Then Check2.Value = 1 Else Check2.Value = 0
@@ -827,7 +893,15 @@ End If
 ReDim NewExtNames(0) As String
 ReDim NewExtComp(0) As Integer
 Combo1.ListIndex = 1
-ExtList = GetReg(AppKey + "Compression\List", ".bik.smk.wav")
+DCompType = GetReg(AppKey + "DefaultCompress", -1)
+Select Case DCompType
+Case -3
+Combo2.ListIndex = 1
+Case Else
+Combo2.ListIndex = 0
+End Select
+Combo3.ListIndex = GetReg(AppKey + "DefaultZlibLevel", Z_DEFAULT_COMPRESSION) + 1
+ExtList = GetReg(AppKey + "Compression\List", ".bik.smk.mp3.mpq.w3m.wav")
 If InStr(1, ExtList, ".") > 0 And Len(ExtList) > 1 Then
 Do
     ReDim Preserve NewExtNames(UBound(NewExtNames) + 1) As String
@@ -843,6 +917,12 @@ Do
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.bik", "-2"))
     ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".smk" Then
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.smk", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".mp3" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.mp3", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".mpq" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".w3m" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
     ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".wav" Then
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.wav", "0"))
     Else
@@ -857,7 +937,7 @@ Do
         If aName <> "" Then
             On Error GoTo AlreadyExists
             FileTypes.ListItems.Add(, aName, GetReg("HKEY_CLASSES_ROOT\" + aName + "\", UCase(Mid(aExt, 2)) + " File")).ToolTipText = UCase(aExt)
-            On Error GoTo 0
+            On Error Resume Next
         End If
     ElseIf LCase(aExt) = "unknown" Then
         FileTypes.ListItems.Add(, aExt, GetReg("HKEY_CLASSES_ROOT\" + aExt + "\")).ToolTipText = ""
@@ -879,22 +959,25 @@ CD.FileName = OldFileName
 End Sub
 
 Private Sub List1_Click()
-Dim eNum As Integer, OldExtComp As Integer
+Dim xNum As Integer, OldExtComp As Integer
 If List1.ListIndex > -1 Then
     Combo1.Enabled = True
-    For eNum = 1 To UBound(NewExtNames)
-        If List1.List(List1.ListIndex) = NewExtNames(eNum) Then Exit For
-    Next eNum
-    Select Case NewExtComp(eNum)
+    For xNum = 1 To UBound(NewExtNames)
+        If List1.List(List1.ListIndex) = NewExtNames(xNum) Then Exit For
+    Next xNum
+    Select Case NewExtComp(xNum)
     Case -2
         AudioC(0).Value = True
         Combo1.ListIndex = 0
     Case -1
         AudioC(0).Value = True
         Combo1.ListIndex = 1
-    Case 0, 1, 2
-        OldExtComp = NewExtComp(eNum)
+    Case -3
+        AudioC(0).Value = True
         Combo1.ListIndex = 2
+    Case 0, 1, 2
+        OldExtComp = NewExtComp(xNum)
+        Combo1.ListIndex = 3
         AudioC(OldExtComp).Value = True
     Case Else
         AudioC(0).Value = True
@@ -927,8 +1010,8 @@ If (KeyAscii < 48 Or KeyAscii > 57) And KeyAscii <> 8 Then KeyAscii = 0
 End Sub
 Private Sub Text1_LostFocus()
 If Text1 = "" Then Text1 = 0
-If Text1 < 16 Then Text1 = 16
-If Text1 > 262144 Then Text1 = 262144
+'If Text1 < 16 Then Text1 = 16
+'If Text1 > 262144 Then Text1 = 262144
 End Sub
 Private Sub Text2_KeyPress(KeyAscii As Integer)
 Dim NewValue As Long
@@ -943,11 +1026,9 @@ End Sub
 Private Sub Text2_LostFocus()
 If Text2 = "" Then Text2 = 0
 End Sub
-
 Private Sub Text4_GotFocus()
 cmdAdd.Default = True
 End Sub
-
 Private Sub Text4_LostFocus()
 Command1.Default = True
 End Sub

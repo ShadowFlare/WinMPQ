@@ -1,14 +1,14 @@
 {\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fswiss\fprq2 Arial;}{\f1\fswiss\fprq2\fcharset0 Arial;}{\f2\fmodern\fprq1 Courier New;}{\f3\fnil\fcharset2 Symbol;}}
 {\colortbl ;\red0\green0\blue0;}
-\viewkind4\uc1\pard\b\f0\fs36 WinMPQ v1.\f1 54\b0\f0\fs20\par
+\viewkind4\uc1\pard\b\f0\fs36 WinMPQ v1.\f1 62\b0\f0\fs20\par
 \par
-\pard\li360 This program is an mpq archiver I created as an example of a program using the Mpq Control.  It currently has many features and is one of the best mpq archivers around.\par
+\pard\li360 This program is an mpq archiver I \f1 started\f0  as an example of a program using the Mpq Control\f1 , but it now uses SFmpq directly\f0 .  It currently has many features and is one of the best mpq archivers around.\par
 \pard\par
 \ul\b\fs24 Required Files (all may be downloaded from my page)\ulnone\b0\fs20\par
 \par
 \pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720 Visual Basic 4 runtime libraries\par
 {\pntext\f3\'B7\tab}Microsoft Windows Common Controls\par
-{\pntext\f3\'B7\tab}Mpq Control and its required files\par
+\f1{\pntext\f3\'B7\tab}SFmpq (included)\f0\par
 \pard\par
 \ul\b\fs24 Mo'PaQ 2000 parameters and scripts in WinMPQ\ulnone\b0\fs20\par
 \pard\li360 WinMPQ has support for running Mo'PaQ 2000 (MPQ2k) parameters and scripts; it almost has full support for every parameter MPQ2k uses and has commands and additional features MPQ2k doesn't have.  Also, the name of the MPQ archive only needs to be specified when opening files and using command-line parameters.  (parts of this section are taken from the Mo'PaQ 2000 manual)\par
@@ -137,7 +137,7 @@ NOTE: Each file that a MoPaQ can hold (the FileLimit) takes up 16 bytes in the M
 \pard\li360\cf1 This is a text box where you can type in different commands.  The commands are the same as they are in the script files, but there are a few differences.  The \b\i Open\b0\i0  command can be used to open an archive into the main listing in addition to using the open menu command.  It can also be used by itself to reload an archive.  Just like with scripts, you don't need to specify the name of the archive for commands other than the open command.  All commands typed into the box affect the archive open in the main listing.\par
 \par
 \pard\cf0\ul\b\fs24 Locale ID\ulnone\b0\fs20\par
-\pard\li360 The locale ID determines what language version of a file is extracted.  Currently you can't add files with anything other than language neutral, only extract.  Here is a list of some of the ID numbers you can use to extract the other language versions of some of the files.\par
+\pard\li360 The locale ID determines what language\f1  version of the software\f0  a file is\f1  intended for\f0 .  Here is a list of some of the ID numbers you can use \f1 for\f0  files.\par
 \pard\par
 \pard\li720\tx3600 0\tab Language Neutral/English\par
 1031 (407 in hex)\tab German\par
@@ -152,6 +152,26 @@ NOTE: Each file that a MoPaQ can hold (the FileLimit) takes up 16 bytes in the M
 \pard\par
 \ul\b\fs24 Version history\ulnone\b0\fs20\par
 \par
+\ul\b 1.\f1 62\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed a bug that prevented extracting empty files.\f0\par
+\f1{\pntext\f3\'B7\tab}Added an option that would allow one to have WinMPQ search a specified folder and all of its subfolders for file lists with names similar to the open archive.\f0\par
+\f1{\pntext\f3\'B7\tab}When you add a file, you are prompted for what path to add to the beginning of the filenames, and click cancel, WinMPQ no longer adds the files with no path added but instead it cancels adding the files.\f0\par
+\pard\par
+\ul\b 1.\f1 61\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 WinMPQ was not closing the archive handle properly after adding files that have been modified after being opened from WinMPQ.  This was causing WinMPQ to be unable to open the archive to add files, extract files, etc.  This bug has been fixed in this version.\f0\par
+\f1{\pntext\f3\'B7\tab}Fixed a bug that caused WinMPQ to be unable to update a file in the archive that has been modified.\f0\par
+\f1{\pntext\f3\'B7\tab}Mpq Embedder is now included with WinMPQ.  Access it from the "Tools" menu.\f0\par
+\f1{\pntext\f3\'B7\tab}All options that were available by right-clicking a file are now also available from the "Mpq" menu.\f0\par
+\f1{\pntext\f3\'B7\tab}The "Tools" menu is now also shown on the right-click context menu shown when right-clicking on a file.\f0\par
+\f1{\pntext\f3\'B7\tab}The default compression type can be changed now, and the compression level for deflate compression can set.\f0\par
+\f1{\pntext\f3\'B7\tab}Added a menu command to add a file to the listing if it is not listed and you know the name of the file.\f0\par
+\f1{\pntext\f3\'B7\tab}Added a menu command to change the locale ID of an existing file.\f0\par
+\pard\par
+\ul\b 1.\f1 60\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Switched to using SFmpq instead of Mpq Control.\f0\par
+\f1{\pntext\f3\'B7\tab}Added support for adding files with Warcraft III's new compression method.\f0\par
+\f1{\pntext\f3\'B7\tab}File encryption can now be enabled or disabled through the "Mpq" menu.\f0\par
+\pard\par
 \ul\b 1.\f1 54\f0 __________\par
 \pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Added an option to only use found file lists when using the option to automatically find file lists.\f0\par
 \f1{\pntext\f3\'B7\tab}Implemented a workaround for the icon color limitation in Visual Basic 4 programs.  Now the icon shown when the program is running is 256 colors as it should be.\f0\par

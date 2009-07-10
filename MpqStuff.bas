@@ -15,7 +15,7 @@ Public Declare Sub SHChangeNotify Lib _
     ByVal dwItem1 As Any, _
     ByVal dwItem2 As Any)
 Public Declare Function SendMessageA Lib _
-    "user32.dll" _
+    "User32.dll" _
     (ByVal hWnd As Long, _
     ByVal Msg As Long, _
     ByVal Wp As Long, _
@@ -28,7 +28,7 @@ Private Declare Sub CopyMemory Lib "Kernel32.dll" _
     ByVal Length As Long)
 
 Public CD As OPENFILENAME, PathInput As BROWSEINFO
-Public GlobalFileList() As String, FileList() As String, CX As Single, CY As Single, NewFile As Boolean, LocaleID As Long, ListFile As String, AddFolderName As String, ExtractPathNum As Long, CopyPathNum As Long
+Public GlobalFileList() As String, FileList() As String, CX As Single, CY As Single, NewFile As Boolean, LocaleID As Long, ListFile As String, AddFolderName As String, ExtractPathNum As Long, CopyPathNum As Long, GlobalEncrypt As Boolean, DefaultCompress As Long, DefaultCompressID As Long, DefaultCompressLevel As Long, DefaultMaxFiles As Long
 Public Const AppKey As String = "HKEY_CURRENT_USER\Software\ShadowFlare\WinMPQ\", SharedAppKey As String = "HKEY_LOCAL_MACHINE\Software\ShadowFlare\WinMPQ\"
 Public Const MPQ_ERROR_INIT_FAILED As Long = &H85000001 'Unspecified error
 Public Const MPQ_ERROR_NO_STAREDIT As Long = &H85000002 'Can't find StarEdit.exe
@@ -39,12 +39,31 @@ Public Const SHCNF_IDLIST  As Long = &H0
 Public Const WM_SETREDRAW As Long = &HB
 Public Const WM_PAINT  As Long = &HF
 Const gintMAX_SIZE% = 255
+Sub AboutSFMpq()
+Dim AboutPage As String, Path As String
+Path = App.Path
+If Right(Path, 1) <> "\" Then Path = Path + "\"
+AboutPage = Path + "sfmpq.dll"
+If Not FileExists(AboutPage) Then AboutPage = "sfmpq.dll"
+ShellExecute 0, vbNullString, "res://" + AboutPage + "/about", vbNullString, vbNullString, 1
+End Sub
+Function mOpenMpq(FileName As String) As Long
+Dim hMPQ As Long
+mOpenMpq = 0
+hMPQ = MpqOpenArchiveForUpdate(FileName, MOAU_OPEN_EXISTING Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles)
+If hMPQ = 0 Or hMPQ = INVALID_HANDLE_VALUE Then
+    hMPQ = MpqOpenArchiveForUpdate(FileName, MOAU_CREATE_NEW Or MOAU_MAINTAIN_LISTFILE, DefaultMaxFiles)
+End If
+If hMPQ <> 0 And hMPQ <> INVALID_HANDLE_VALUE Then
+    mOpenMpq = hMPQ
+End If
+End Function
 Function PathInputBox(lpFolderDialog As BROWSEINFO, pCaption As String, StartFolder As String) As String
 lpFolderDialog.Title = pCaption
-Dim Result As Long
-Result = ShowFolder(lpFolderDialog)
-If Result = 0 Then Exit Function
-PathInputBox = GetPathFromID(Result)
+Dim result As Long
+result = ShowFolder(lpFolderDialog)
+If result = 0 Then Exit Function
+PathInputBox = GetPathFromID(result)
 End Function
 Function GetLongPath(Path As String) As String
     Dim strBuf As String, StrLength As Long
@@ -57,40 +76,6 @@ Function GetLongPath(Path As String) As String
         GetLongPath = Path
     End If
 End Function
-Sub AddAutoFile(Mpq As String, File As String, MpqPath As String)
-Dim cType As Integer, bNum As Long, fExt As String
-For bNum = 1 To Len(File)
-    If InStr(bNum, File, ".") > 0 Then
-        bNum = InStr(bNum, File, ".")
-    Else
-        Exit For
-    End If
-Next bNum
-If bNum > 1 Then
-    fExt = Mid(File, bNum - 1)
-Else
-    fExt = File
-End If
-If LCase(fExt) = ".bik" Then
-    cType = CInt(GetReg(AppKey + "Compression\.bik", "-2"))
-ElseIf LCase(fExt) = ".smk" Then
-    cType = CInt(GetReg(AppKey + "Compression\.smk", "-2"))
-ElseIf LCase(fExt) = ".wav" Then
-    cType = CInt(GetReg(AppKey + "Compression\.wav", "0"))
-Else
-    cType = CInt(GetReg(AppKey + "Compression\" + fExt, "-1"))
-End If
-Select Case cType
-Case -2
-MpqEx.Mpq.AddFile Mpq, File, MpqPath, 0
-Case -1
-MpqEx.Mpq.AddFile Mpq, File, MpqPath, 1
-Case 0, 1, 2
-MpqEx.Mpq.AddWavFile Mpq, File, MpqPath, cType
-Case Else
-MpqEx.Mpq.AddFile Mpq, File, MpqPath, 1
-End Select
-End Sub
 Sub AddScriptOutput(sOutput As String)
 SendMessageA ScriptOut.oText.hWnd, WM_SETREDRAW, 0, ByVal 0&
 ScriptOut.oText = ScriptOut.oText + sOutput
@@ -107,13 +92,54 @@ If InStr(FileName, "\") > 0 Then
             Exit For
         End If
     Next bNum
+    GetFileTitle = Mid(FileName, bNum)
+Else
+    GetFileTitle = FileName
 End If
-GetFileTitle = Mid(FileName, bNum)
 End Function
-Function ListFiles(MpqName As String, ByVal FileLists As String) As String
-Dim NewFileLists As String, nFileLists() As String, ListName As String, cNum As Long, cNum2 As Long, cNum3 As Long, MpqList1 As String, MpqList2 As String, Path As String, ListLen As Long, OldLists() As String, UseOnlyAutoList As Boolean
+Function sGetFile(hMPQ As Long, ByVal FileName As String, OutPath As String, ByVal UseFullPath As Long)
+Dim hFile As Long, buffer() As Byte, fLen As Long, cNum As Long
+If SFileOpenFileEx(hMPQ, FileName, 0, hFile) Then
+    fLen = SFileGetFileSize(hFile, 0)
+    If fLen > 0 Then
+        ReDim buffer(fLen - 1)
+    Else
+        ReDim buffer(0)
+    End If
+    SFileReadFile hFile, buffer(0), fLen, ByVal 0, ByVal 0
+    SFileCloseFile hFile
+    If UseFullPath = 0 Then FileName = GetFileTitle(FileName)
+    FileName = FullPath(OutPath, FileName)
+    On Error Resume Next
+    For cNum = 1 To Len(FileName)
+        cNum = InStr(cNum, FileName, "\")
+        If cNum > 0 Then
+            MkDir Left(FileName, cNum)
+        Else
+            Exit For
+        End If
+    Next cNum
+    If FileExists(FileName) Then Kill FileName
+    On Error GoTo 0
+    cNum = FreeFile
+    On Error GoTo WriteError
+    Open FileName For Binary As #cNum
+        If fLen > 0 Then Put #cNum, 1, buffer
+    Close #cNum
+    On Error GoTo 0
+End If
+Exit Function
+WriteError:
+MsgBox "Error writing file.  File may be in use.", vbCritical, "WinMPQ"
+Resume Next
+End Function
+Function sListFiles(MpqName As String, hMPQ As Long, ByVal FileLists As String, ByRef ListedFiles() As FILELISTENTRY) As Boolean
+Dim NewFileLists As String, nFileLists() As String, ListName As String, cNum As Long, cNum2 As Long, cNum3 As Long, cNum4 As Long, MpqList1 As String, MpqList2 As String, Path As String, ListLen As Long, OldLists() As String, UseOnlyAutoList As Boolean, nHash As Long, nHashEntries As Long
+sListFiles = False
+ReDim ListedFiles(0)
+ListedFiles(0).dwFileExists = 0
 If GetReg(AppKey + "AutofindFileLists", 0) = 0 Then
-    ListFiles = MpqEx.Mpq.ListFiles(MpqName, FileLists)
+    NewFileLists = FileLists
 Else
     UseOnlyAutoList = GetReg(AppKey + "UseOnlyAutofindLists", 1)
     MpqList2 = GetExtension(MpqName)
@@ -125,7 +151,7 @@ Else
     If FileLists <> "" Then
         FileLists = FileLists + vbCrLf + Path + App.EXEName + ".exe" + vbCrLf + MpqName
     Else
-        FileLists = FileLists + vbCrLf + Path + App.EXEName + ".exe" + vbCrLf + MpqName
+        FileLists = Path + App.EXEName + ".exe" + vbCrLf + MpqName
     End If
     ReDim nFileLists(0) As String
     If UseOnlyAutoList Then ReDim OldLists(0) As String
@@ -134,29 +160,47 @@ Else
         If cNum2 = 0 Then
             cNum2 = Len(FileLists) + 1
         End If
-        ListName = Mid(FileLists, cNum, cNum2 - cNum)
-        If UseOnlyAutoList Then
-            ReDim Preserve OldLists(UBound(OldLists) + 1) As String
-            OldLists(UBound(OldLists)) = GetLongPath(ListName)
-        End If
-        For cNum3 = 1 To Len(ListName)
-            If InStr(cNum3, ListName, "\") Then
-                cNum3 = InStr(cNum3, ListName, "\")
-                If FileExists(Left(ListName, cNum3) + MpqList1) Then
-                    ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-                    nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList1)
+        If cNum2 - cNum > 0 Then
+            ListName = Mid(FileLists, cNum, cNum2 - cNum)
+            If Not IsDir(ListName) Then
+                If UseOnlyAutoList And cNum < ListLen Then
+                    ReDim Preserve OldLists(UBound(OldLists) + 1) As String
+                    OldLists(UBound(OldLists)) = GetLongPath(ListName)
                 End If
-                If FileExists(Left(ListName, cNum3) + MpqList2) Then
+                For cNum3 = 1 To Len(ListName)
+                    If InStr(cNum3, ListName, "\") Then
+                        cNum3 = InStr(cNum3, ListName, "\")
+                        If FileExists(Left(ListName, cNum3) + MpqList1) Then
+                            ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
+                            nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList1)
+                        End If
+                        If FileExists(Left(ListName, cNum3) + MpqList2) Then
+                            ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
+                            nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList2)
+                        End If
+                    Else
+                        Exit For
+                    End If
+                Next cNum3
+                If FileExists(ListName) And ListName <> Path + App.EXEName + ".exe" And ListName <> MpqName Then
                     ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-                    nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList2)
+                    nFileLists(UBound(nFileLists)) = GetLongPath(ListName)
                 End If
             Else
-                Exit For
+                ListName = DirEx(ListName, MpqList1, 6, True) _
+                         + DirEx(ListName, MpqList2, 6, True)
+                For cNum3 = 1 To Len(ListName)
+                    cNum4 = InStr(cNum3, ListName, vbCrLf)
+                    If cNum4 = 0 Then
+                        cNum4 = Len(ListName) + 1
+                    End If
+                    If cNum4 - cNum3 > 0 Then
+                        ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
+                        nFileLists(UBound(nFileLists)) = GetLongPath(Mid(ListName, cNum3, cNum4 - cNum3))
+                    End If
+                    cNum3 = cNum4 + 1
+                Next cNum3
             End If
-        Next cNum3
-        If FileExists(ListName) And ListName <> Path + App.EXEName + ".exe" And ListName <> MpqName Then
-            ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-            nFileLists(UBound(nFileLists)) = GetLongPath(ListName)
         End If
         cNum = cNum2 + 1
     Next cNum
@@ -172,111 +216,38 @@ Else
     End If
 StartSearch:
     For cNum = 1 To UBound(nFileLists)
-        For cNum2 = 1 To UBound(nFileLists)
-            If LCase(nFileLists(cNum)) = LCase(nFileLists(cNum2)) And cNum <> cNum2 Then
-                nFileLists(cNum2) = ""
-            End If
-        Next cNum2
-        If UseOnlyAutoList Then
-            For cNum2 = 1 To UBound(OldLists)
-                If LCase(nFileLists(cNum)) = LCase(OldLists(cNum2)) Then
-                    nFileLists(cNum) = ""
+        If nFileLists(cNum) <> "" Then
+            For cNum2 = 1 To UBound(nFileLists)
+                If LCase(nFileLists(cNum)) = LCase(nFileLists(cNum2)) And cNum <> cNum2 Then
+                    nFileLists(cNum2) = ""
                 End If
             Next cNum2
+        End If
+        If UseOnlyAutoList Then
+            If nFileLists(cNum) <> "" Then
+                For cNum2 = 1 To UBound(OldLists)
+                    If LCase(nFileLists(cNum)) = LCase(OldLists(cNum2)) And LCase(GetFileTitle(nFileLists(cNum))) <> LCase(MpqList1) And LCase(GetFileTitle(nFileLists(cNum))) <> LCase(MpqList2) Then
+                        nFileLists(cNum) = ""
+                        Exit For
+                    End If
+                Next cNum2
+            End If
         End If
         If nFileLists(cNum) <> "" Then
             NewFileLists = NewFileLists + nFileLists(cNum) + vbCrLf
         End If
     Next cNum
     If Right(NewFileLists, 2) = vbCrLf Then NewFileLists = Left(NewFileLists, Len(NewFileLists) - 2)
-    ListFiles = MpqEx.Mpq.ListFiles(MpqName, NewFileLists)
 End If
-End Function
-Function sListFiles(MpqName As String, hMPQ As Long, ByVal FileLists As String) As String
-Dim NewFileLists As String, nFileLists() As String, ListName As String, cNum As Long, cNum2 As Long, cNum3 As Long, MpqList1 As String, MpqList2 As String, Path As String, ListLen As Long, OldLists() As String, UseOnlyAutoList As Boolean
-If GetReg(AppKey + "AutofindFileLists", 0) = 0 Then
-    sListFiles = MpqEx.Mpq.sListFiles(hMPQ, FileLists)
-Else
-    UseOnlyAutoList = GetReg(AppKey + "UseOnlyAutofindLists", 1)
-    MpqList2 = GetExtension(MpqName)
-    MpqList1 = GetFileTitle(Left(MpqName, Len(MpqName) - Len(MpqList2))) + ".txt"
-    MpqList2 = GetFileTitle(MpqName) + ".txt"
-    Path = GetLongPath(App.Path)
-    If Right(Path, 1) <> "\" Then Path = Path + "\"
-    If UseOnlyAutoList Then ListLen = Len(FileLists)
-    If FileLists <> "" Then
-        FileLists = FileLists + vbCrLf + Path + App.EXEName + ".exe" + vbCrLf + MpqName
-    Else
-        FileLists = FileLists + vbCrLf + Path + App.EXEName + ".exe" + vbCrLf + MpqName
-    End If
-    ReDim nFileLists(0) As String
-    If UseOnlyAutoList Then ReDim OldLists(0) As String
-    For cNum = 1 To Len(FileLists)
-        cNum2 = InStr(cNum, FileLists, vbCrLf)
-        If cNum2 = 0 Then
-            cNum2 = Len(FileLists) + 1
-        End If
-        ListName = Mid(FileLists, cNum, cNum2 - cNum)
-        If UseOnlyAutoList And cNum < ListLen Then
-            ReDim Preserve OldLists(UBound(OldLists) + 1) As String
-            OldLists(UBound(OldLists)) = GetLongPath(ListName)
-        End If
-        For cNum3 = 1 To Len(ListName)
-            If InStr(cNum3, ListName, "\") Then
-                cNum3 = InStr(cNum3, ListName, "\")
-                If FileExists(Left(ListName, cNum3) + MpqList1) Then
-                    ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-                    nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList1)
-                End If
-                If FileExists(Left(ListName, cNum3) + MpqList2) Then
-                    ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-                    nFileLists(UBound(nFileLists)) = GetLongPath(Left(ListName, cNum3) + MpqList2)
-                End If
-            Else
-                Exit For
-            End If
-        Next cNum3
-        If FileExists(ListName) And ListName <> Path + App.EXEName + ".exe" And ListName <> MpqName Then
-            ReDim Preserve nFileLists(UBound(nFileLists) + 1) As String
-            nFileLists(UBound(nFileLists)) = GetLongPath(ListName)
-        End If
-        cNum = cNum2 + 1
-    Next cNum
-    If UseOnlyAutoList Then
-        For cNum = 1 To UBound(nFileLists)
-            For cNum2 = 1 To UBound(OldLists)
-                If LCase(nFileLists(cNum)) <> LCase(OldLists(cNum2)) Then
-                    GoTo StartSearch
-                End If
-            Next cNum2
-        Next cNum
-        UseOnlyAutoList = False
-    End If
-StartSearch:
-    For cNum = 1 To UBound(nFileLists)
-        For cNum2 = 1 To UBound(nFileLists)
-            If LCase(nFileLists(cNum)) = LCase(nFileLists(cNum2)) And cNum <> cNum2 Then
-                nFileLists(cNum2) = ""
-            End If
-        Next cNum2
-        If UseOnlyAutoList Then
-            For cNum2 = 1 To UBound(OldLists)
-                If LCase(nFileLists(cNum)) = LCase(OldLists(cNum2)) Then
-                    nFileLists(cNum) = ""
-                    Exit For
-                End If
-            Next cNum2
-        End If
-        If nFileLists(cNum) <> "" Then
-            NewFileLists = NewFileLists + nFileLists(cNum) + vbCrLf
-        End If
-    Next cNum
-    If Right(NewFileLists, 2) = vbCrLf Then NewFileLists = Left(NewFileLists, Len(NewFileLists) - 2)
-    sListFiles = MpqEx.Mpq.sListFiles(hMPQ, NewFileLists)
-End If
+nHashEntries = SFileGetFileInfo(hMPQ, SFILE_INFO_HASH_TABLE_SIZE)
+If nHashEntries - 1 < 1 Then Exit Function
+ReDim ListedFiles(nHashEntries - 1)
+sListFiles = SFileListFiles(hMPQ, NewFileLists, ListedFiles(0), 0)
 End Function
 Sub mAddAutoFile(hMPQ As Long, File As String, MpqPath As String)
-Dim cType As Integer, bNum As Long, fExt As String
+Dim cType As Integer, bNum As Long, fExt As String, dwFlags As Long
+dwFlags = MAFA_REPLACE_EXISTING
+If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
 For bNum = 1 To Len(File)
     If InStr(bNum, File, ".") > 0 Then
         bNum = InStr(bNum, File, ".")
@@ -291,22 +262,35 @@ Else
 End If
 If LCase(fExt) = ".bik" Then
     cType = CInt(GetReg(AppKey + "Compression\.bik", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
 ElseIf LCase(fExt) = ".smk" Then
     cType = CInt(GetReg(AppKey + "Compression\.smk", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".mp3" Then
+    cType = CInt(GetReg(AppKey + "Compression\.mp3", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".mpq" Then
+    cType = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".w3m" Then
+    cType = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
 ElseIf LCase(fExt) = ".wav" Then
     cType = CInt(GetReg(AppKey + "Compression\.wav", "0"))
 Else
-    cType = CInt(GetReg(AppKey + "Compression\" + fExt, "-1"))
+    cType = CInt(GetReg(AppKey + "Compression\" + fExt, CStr(DefaultCompressID)))
 End If
 Select Case cType
 Case -2
-MpqEx.Mpq.mAddFile hMPQ, File, MpqPath, 0
+MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags, 0, 0
 Case -1
-MpqEx.Mpq.mAddFile hMPQ, File, MpqPath, 1
+MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+Case -3
+MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
 Case 0, 1, 2
-MpqEx.Mpq.mAddWavFile hMPQ, File, MpqPath, cType
+MpqAddWaveToArchive hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, cType
 Case Else
-MpqEx.Mpq.mAddFile hMPQ, File, MpqPath, 1
+MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
 End Select
 End Sub
 Function DirEx(ByVal Path As String, Filter As String, Attributes, Recurse As Boolean) As String
@@ -392,35 +376,11 @@ NoFile:
 FileExists = False
 End Function
 Function IsMPQ(MpqFile As String) As Boolean
-Dim fNum As Long, Text As String, bNum As Long, MpqHead As Long
-If FileExists(MpqFile) = False Then
+If FindMpqHeader(MpqFile) <> -1 Then
+    IsMPQ = True
+Else
     IsMPQ = False
-    Exit Function
 End If
-fNum = FreeFile
-Open MpqFile For Binary As #fNum
-For bNum = 1 To LOF(fNum) Step 2 ^ 20
-    Text = String(2 ^ 20 + 32, Chr(0))
-    If LOF(fNum) - bNum + 1 >= 2 ^ 20 + 32 Then
-        Get #fNum, bNum, Text
-    Else
-        Text = String(LOF(fNum) - bNum + 1, Chr(0))
-        Get #fNum, bNum, Text
-    End If
-    MpqHead = InStr(Text, "MPQ" + Chr(26))
-CheckAgain:
-    If MpqHead > 0 Then
-        If JBytes(Text, MpqHead + 4, 4) >= 32 And JBytes(Text, MpqHead + 12, 2) = 0 Then
-            Exit For
-        Else
-            MpqHead = InStr(MpqHead + 4, Text, "MPQ" + Chr(26))
-            GoTo CheckAgain
-        End If
-    End If
-Next bNum
-Close #fNum
-IsMPQ = True
-If MpqHead = 0 Then IsMPQ = False
 End Function
 Sub KillEx(ByVal Path As String, Filter As String, Attributes, Recurse As Boolean)
 Dim Files() As String, lNum As Long, Folders() As String
@@ -592,23 +552,32 @@ Loop
 RenameWithFilter = NewFileName
 End Function
 Function MpqDir(MpqFile As String, Filters As String)
-Dim Files As String, bNum As Long, EndLine As Long, fName As String
-Files = ListFiles(MpqFile, ListFile)
-bNum = 1
-Do Until bNum > Len(Files)
-    EndLine = InStr(bNum, Files, vbCrLf)
-    If EndLine = 0 Then EndLine = Len(Files) + 1
-    fName = Mid(Files, bNum, EndLine - bNum)
-    If MatchesFilter(fName, Filters) Then
-        bNum = EndLine + 2
+Dim Files() As FILELISTENTRY, fNum As Long, szFileList As String, NamePos As Long, CurFileName As String
+Dim hMPQ As Long
+If SFileOpenArchive(MpqFile, 0, 0, hMPQ) Then
+    If sListFiles(MpqFile, hMPQ, ListFile, Files) Then
+        SFileCloseArchive hMPQ
+        For fNum = 0 To UBound(Files)
+            If Files(fNum).dwFileExists Then
+                CurFileName = StrConv(Files(fNum).szFileName, vbUnicode)
+                If MatchesFilter(CurFileName, Filters) Then
+                    NamePos = InStr(1, szFileList, CurFileName + vbCrLf, 1)
+                    If NamePos > 1 Then
+                        NamePos = InStr(1, szFileList, vbCrLf + CurFileName + vbCrLf, 1)
+                    End If
+                    If NamePos > 0 Then _
+                        szFileList = szFileList + CurFileName
+                End If
+            End If
+        Next fNum
+        MpqDir = MpqDir + CurFileName + vbCrLf
     Else
-        Files = Left(Files, bNum - 1) + Mid(Files, EndLine + 2)
+        SFileCloseArchive hMPQ
     End If
-Loop
-MpqDir = Files
+End If
 End Function
 Sub RunScript(ScriptName As String)
-Dim fNum As Long, Script As String, sLine As String, Param() As String, bNum As Long, EndLine As Long, pNum As Long, EndParam As Long, MpqFile As String, OldDefaultMaxFiles As Long, cType As Integer, lNum As Long, OldPath As String, NewPath As String, Rswitch As Boolean, Files As String, fCount As Long, fEndLine As Long, fLine As String, ScriptNewFile As Boolean, CurPath As String, fLine2 As String, fLineTitle As String, hMPQ As Long
+Dim fNum As Long, Script As String, sLine As String, Param() As String, bNum As Long, EndLine As Long, pNum As Long, EndParam As Long, MpqFile As String, OldDefaultMaxFiles As Long, cType As Integer, lNum As Long, OldPath As String, NewPath As String, Rswitch As Boolean, Files As String, fCount As Long, fEndLine As Long, fLine As String, ScriptNewFile As Boolean, CurPath As String, fLine2 As String, fLineTitle As String, hMPQ As Long, hFile As Long, dwFlags
 If FileExists(ScriptName) = False Then
     ScriptOut.Show
     AddScriptOutput "Could not find script " + ScriptName + vbCrLf
@@ -634,7 +603,7 @@ CurPath = CurDir
 If Right(Script, 2) <> vbCrLf Then Script = Script + vbCrLf
 ScriptOut.Show
 AddScriptOutput "Script: " + ScriptName + vbCrLf + vbCrLf
-OldDefaultMaxFiles = MpqEx.Mpq.DefaultMaxFiles
+OldDefaultMaxFiles = DefaultMaxFiles
 lNum = 1
 For bNum = 1 To Len(Script)
     EndLine = InStr(bNum, Script, vbCrLf)
@@ -665,7 +634,7 @@ For bNum = 1 To Len(Script)
             If Param(2) <> "" Then
                 MpqFile = Param(2)
                 If Param(3) <> "" And FileExists(MpqFile) = False Then
-                    MpqEx.Mpq.DefaultMaxFiles = Param(3)
+                    DefaultMaxFiles = Param(3)
                 End If
                 If FileExists(MpqFile) Then
                     AddScriptOutput "Opened " + MpqFile + vbCrLf
@@ -680,7 +649,7 @@ For bNum = 1 To Len(Script)
             If Param(2) <> "" Then
                 MpqFile = Param(2)
                 If Param(3) <> "" Then
-                    MpqEx.Mpq.DefaultMaxFiles = Param(3)
+                    DefaultMaxFiles = Param(3)
                 End If
                 ScriptNewFile = True
                 AddScriptOutput "Created new " + MpqFile + vbCrLf
@@ -706,11 +675,15 @@ For bNum = 1 To Len(Script)
                 Files = ""
                 fEndLine = 0
                 fLine = ""
+                dwFlags = MAFA_REPLACE_EXISTING
+                If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
                 For pNum = 3 To UBound(Param)
                     If LCase(Param(pNum)) = "/wav" Then
                         cType = 2
+                        dwFlags = dwFlags Or MAFA_COMPRESS
                     ElseIf LCase(Param(pNum)) = "/c" And cType < 2 Then
                         cType = 1
+                        dwFlags = dwFlags Or MAFA_COMPRESS
                     ElseIf LCase(Param(pNum)) = "/auto" And cType < 1 Then
                         cType = -1
                     ElseIf LCase(Param(pNum)) = "/r" Then
@@ -738,7 +711,7 @@ For bNum = 1 To Len(Script)
                         ScriptNewFile = False
                     End If
                     Files = DirEx(Files, Mid(Param(2), Len(Files) + 1), 6, Rswitch)
-                    hMPQ = MpqEx.Mpq.mOpenMpq(FullPath(NewPath, MpqFile))
+                    hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
                     If hMPQ = 0 Then
                         AddScriptOutput "Can't create archive " + MpqFile + vbCrLf
                         GoTo CommandError
@@ -761,23 +734,23 @@ For bNum = 1 To Len(Script)
                         If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                             If Right(Param(3), 1) <> "\" And Param(3) <> "" Then Param(3) = Param(3) + "\"
                             If cType = 2 Then
-                                MpqEx.Mpq.mAddWavFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 0
+                                MpqAddWaveToArchive hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0
                             ElseIf cType = -1 Then
                                 mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine
                             ElseIf cType = 1 Then
-                                MpqEx.Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 1
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
                             Else
-                                MpqEx.Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, 0
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0, 0
                             End If
                         Else
                             If cType = 2 Then
-                                MpqEx.Mpq.mAddWavFile hMPQ, FullPath(CurPath, fLine), Param(3), 0
+                                MpqAddWaveToArchive hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0
                             ElseIf cType = -1 Then
                                 mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3)
                             ElseIf cType = 1 Then
-                                MpqEx.Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3), 1
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
                             Else
-                                MpqEx.Mpq.mAddFile hMPQ, FullPath(CurPath, fLine), Param(3), 0
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0, 0
                             End If
                         End If
                         AddScriptOutput " Done" + vbCrLf
@@ -785,7 +758,7 @@ For bNum = 1 To Len(Script)
                         fCount = fCount + 1
                         pNum = fEndLine + 1
                     Next pNum
-                    MpqEx.Mpq.mCloseMpq hMPQ
+                    MpqCloseUpdatedArchive hMPQ, 0
                     If fCount > 1 Then
                         AddScriptOutput "Line " + CStr(lNum) + ":  " + CStr(fCount) + " files of " + Param(2) + " added" + vbCrLf
                     End If
@@ -810,7 +783,7 @@ For bNum = 1 To Len(Script)
                 If Left(Param(2), 1) <> "/" And Param(2) <> "" Then
                     If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                         Files = MpqDir(FullPath(NewPath, MpqFile), Param(2))
-                        If MpqEx.Mpq.SFileOpenArchive(FullPath(NewPath, MpqFile), 0, 0, hMPQ) = 0 Then
+                        If SFileOpenArchive(FullPath(NewPath, MpqFile), 0, 0, hMPQ) = 0 Then
                             AddScriptOutput "Can't open archive " + FullPath(NewPath, MpqFile) + vbCrLf
                             GoTo CommandError
                         End If
@@ -821,18 +794,23 @@ For bNum = 1 To Len(Script)
                                 AddScriptOutput "Line " + CStr(lNum) + ": "
                             End If
                             AddScriptOutput "Extracting " + fLine + "..."
-                            MpqEx.Mpq.sGetFile hMPQ, fLine, FullPath(CurPath, Param(3)), cType
+                            sGetFile hMPQ, fLine, FullPath(CurPath, Param(3)), cType
                             AddScriptOutput " Done" + vbCrLf
                             
                             fCount = fCount + 1
                             pNum = fEndLine + 1
                         Next pNum
-                        MpqEx.Mpq.SFileCloseArchive hMPQ
+                        SFileCloseArchive hMPQ
                         If fCount > 1 Then
                             AddScriptOutput "Line " + CStr(lNum) + ":  " + CStr(fCount) + " files of " + Param(2) + " extracted" + vbCrLf
                         End If
                     Else
-                        MpqEx.Mpq.GetFile FullPath(NewPath, MpqFile), Param(2), FullPath(CurPath, Param(3)), cType
+                        If SFileOpenArchive(FullPath(NewPath, MpqFile), 0, 0, hMPQ) = 0 Then
+                            AddScriptOutput "Can't open archive " + FullPath(NewPath, MpqFile) + vbCrLf
+                            GoTo CommandError
+                        End If
+                        sGetFile hMPQ, Param(2), FullPath(CurPath, Param(3)), cType
+                        SFileCloseArchive hMPQ
                         AddScriptOutput " Done" + vbCrLf
                     End If
                 Else
@@ -848,24 +826,29 @@ For bNum = 1 To Len(Script)
                     If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                         If InStr(Param(3), "*") <> 0 Or InStr(Param(3), "?") <> 0 Then
                             Files = MpqDir(FullPath(NewPath, MpqFile), Param(2))
-                            For pNum = 1 To Len(Files)
-                                fEndLine = InStr(pNum, Files, vbCrLf)
-                                fLine = Mid(Files, pNum, fEndLine - pNum)
-                                If pNum > 1 Then
-                                    AddScriptOutput "Line " + CStr(lNum) + ": "
-                                End If
-                                fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
-                                AddScriptOutput "Renaming " + fLine + " => " + fLine2 + "..."
-                                If MpqEx.Mpq.FileExists(FullPath(NewPath, MpqFile), fLine2) Then
-                                    MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), fLine2
-                                    MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), fLine, fLine2
-                                Else
-                                    MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), fLine, fLine2
-                                End If
-                                AddScriptOutput " Done" + vbCrLf
-                                fCount = fCount + 1
-                                pNum = fEndLine + 1
-                            Next pNum
+                            hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                            If hMPQ Then
+                                For pNum = 1 To Len(Files)
+                                    fEndLine = InStr(pNum, Files, vbCrLf)
+                                    fLine = Mid(Files, pNum, fEndLine - pNum)
+                                    If pNum > 1 Then
+                                        AddScriptOutput "Line " + CStr(lNum) + ": "
+                                    End If
+                                    fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
+                                    AddScriptOutput "Renaming " + fLine + " => " + fLine2 + "..."
+                                    If SFileOpenFileEx(hMPQ, fLine2, 0, hFile) Then
+                                        SFileCloseFile hFile
+                                        MpqDeleteFile hMPQ, fLine2
+                                        MpqRenameFile hMPQ, fLine, fLine2
+                                    Else
+                                        MpqRenameFile hMPQ, fLine, fLine2
+                                    End If
+                                    AddScriptOutput " Done" + vbCrLf
+                                    fCount = fCount + 1
+                                    pNum = fEndLine + 1
+                                Next pNum
+                                MpqCloseUpdatedArchive hMPQ, 0
+                            End If
                             If fCount > 1 Then
                                 AddScriptOutput "Line " + CStr(lNum) + ":  " + CStr(fCount) + " files of " + Param(2) + " renamed" + vbCrLf
                             End If
@@ -873,11 +856,16 @@ For bNum = 1 To Len(Script)
                         AddScriptOutput "You must use wildcards with new name" + vbCrLf
                         End If
                     Else
-                        If MpqEx.Mpq.FileExists(FullPath(NewPath, MpqFile), Param(3)) Then
-                            MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), Param(3)
-                            MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), Param(2), Param(3)
-                        Else
-                            MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), Param(2), Param(3)
+                        hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                        If hMPQ Then
+                            If SFileOpenFileEx(hMPQ, Param(3), 0, hFile) Then
+                                SFileCloseFile hFile
+                                MpqDeleteFile hMPQ, Param(3)
+                                MpqRenameFile hMPQ, Param(2), Param(3)
+                            Else
+                                MpqRenameFile hMPQ, Param(2), Param(3)
+                            End If
+                            MpqCloseUpdatedArchive hMPQ, 0
                         End If
                         AddScriptOutput " Done" + vbCrLf
                     End If
@@ -903,33 +891,43 @@ For bNum = 1 To Len(Script)
                 If (Left(Param(2), 1) <> "/" And Param(2) <> "") And (Left(Param(3), 1) <> "/") Then
                     If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                         Files = MpqDir(FullPath(NewPath, MpqFile), Param(2))
-                        For pNum = 1 To Len(Files)
-                            fEndLine = InStr(pNum, Files, vbCrLf)
-                            fLine = Mid(Files, pNum, fEndLine - pNum)
-                            If pNum > 1 Then
-                                AddScriptOutput "Line " + CStr(lNum) + ": "
-                            End If
-                            fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
-                            AddScriptOutput "Moving " + fLine + " => " + fLine2 + "..."
-                            If MpqEx.Mpq.FileExists(FullPath(NewPath, MpqFile), fLine2) Then
-                                MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), fLine2
-                                MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), fLine, fLine2
-                            Else
-                                MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), fLine, fLine2
-                            End If
-                            AddScriptOutput " Done" + vbCrLf
-                            fCount = fCount + 1
-                            pNum = fEndLine + 1
-                        Next pNum
+                        hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                        If hMPQ Then
+                            For pNum = 1 To Len(Files)
+                                fEndLine = InStr(pNum, Files, vbCrLf)
+                                fLine = Mid(Files, pNum, fEndLine - pNum)
+                                If pNum > 1 Then
+                                    AddScriptOutput "Line " + CStr(lNum) + ": "
+                                End If
+                                fLine2 = RenameWithFilter(fLine, Param(2), Param(3))
+                                AddScriptOutput "Moving " + fLine + " => " + fLine2 + "..."
+                                If SFileOpenFileEx(hMPQ, fLine2, 0, hFile) Then
+                                    SFileCloseFile hFile
+                                    MpqDeleteFile hMPQ, fLine2
+                                    MpqRenameFile hMPQ, fLine, fLine2
+                                Else
+                                    MpqRenameFile hMPQ, fLine, fLine2
+                                End If
+                                AddScriptOutput " Done" + vbCrLf
+                                fCount = fCount + 1
+                                pNum = fEndLine + 1
+                            Next pNum
+                            MpqCloseUpdatedArchive hMPQ, 0
+                        End If
                         If fCount > 1 Then
                             AddScriptOutput "Line " + CStr(lNum) + ":  " + CStr(fCount) + " files of " + Param(2) + " moved" + vbCrLf
                         End If
                     Else
-                        If MpqEx.Mpq.FileExists(FullPath(NewPath, MpqFile), Param(3)) Then
-                            MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), Param(3)
-                            MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), Param(2), Param(3)
-                        Else
-                            MpqEx.Mpq.RenFile FullPath(NewPath, MpqFile), Param(2), Param(3)
+                        hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                        If hMPQ Then
+                            If SFileOpenFileEx(hMPQ, Param(3), 0, hFile) Then
+                                SFileCloseFile hFile
+                                MpqDeleteFile hMPQ, Param(3)
+                                MpqRenameFile hMPQ, Param(2), Param(3)
+                            Else
+                                MpqRenameFile hMPQ, Param(2), Param(3)
+                            End If
+                            MpqCloseUpdatedArchive hMPQ, 0
                         End If
                         AddScriptOutput " Done" + vbCrLf
                     End If
@@ -945,23 +943,31 @@ For bNum = 1 To Len(Script)
                 If Left(Param(2), 1) <> "/" And Param(2) <> "" Then
                     If InStr(Param(2), "*") <> 0 Or InStr(Param(2), "?") <> 0 Then
                         Files = MpqDir(FullPath(NewPath, MpqFile), Param(2))
-                        For pNum = 1 To Len(Files)
-                            fEndLine = InStr(pNum, Files, vbCrLf)
-                            fLine = Mid(Files, pNum, fEndLine - pNum)
-                            If pNum > 1 Then
-                                AddScriptOutput "Line " + CStr(lNum) + ": "
-                            End If
-                            AddScriptOutput "Deleting " + fLine + "..."
-                            MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), fLine
-                            AddScriptOutput " Done" + vbCrLf
-                            fCount = fCount + 1
-                            pNum = fEndLine + 1
-                        Next pNum
+                        hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                        If hMPQ Then
+                            For pNum = 1 To Len(Files)
+                                fEndLine = InStr(pNum, Files, vbCrLf)
+                                fLine = Mid(Files, pNum, fEndLine - pNum)
+                                If pNum > 1 Then
+                                    AddScriptOutput "Line " + CStr(lNum) + ": "
+                                End If
+                                AddScriptOutput "Deleting " + fLine + "..."
+                                MpqDeleteFile hMPQ, fLine
+                                AddScriptOutput " Done" + vbCrLf
+                                fCount = fCount + 1
+                                pNum = fEndLine + 1
+                            Next pNum
+                            MpqCloseUpdatedArchive hMPQ, 0
+                        End If
                         If fCount > 1 Then
                             AddScriptOutput "Line " + CStr(lNum) + ":  " + CStr(fCount) + " files of " + Param(2) + " deleted" + vbCrLf
                         End If
                     Else
-                        MpqEx.Mpq.DelFile FullPath(NewPath, MpqFile), Param(2)
+                        hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                        If hMPQ Then
+                            MpqDeleteFile hMPQ, Param(2)
+                            MpqCloseUpdatedArchive hMPQ, 0
+                        End If
                         AddScriptOutput " Done" + vbCrLf
                     End If
                 Else
@@ -973,7 +979,11 @@ For bNum = 1 To Len(Script)
         Case "f", "flush", "compact"
             If MpqFile <> "" Then
                 AddScriptOutput "Flushing " + MpqFile + "..."
-                MpqEx.Mpq.CompactMpq FullPath(NewPath, MpqFile)
+                hMPQ = mOpenMpq(FullPath(NewPath, MpqFile))
+                If hMPQ Then
+                    MpqCompactArchive hMPQ
+                    MpqCloseUpdatedArchive hMPQ, 0
+                End If
                 AddScriptOutput " Done" + vbCrLf
             Else
                 AddScriptOutput "No archive open" + vbCrLf
@@ -986,7 +996,7 @@ For bNum = 1 To Len(Script)
                         Files = MpqDir(FullPath(NewPath, MpqFile), Param(2))
                         Param(2) = Param(3)
                     Else
-                        Files = ListFiles(FullPath(NewPath, MpqFile), ListFile)
+                        Files = MpqDir(FullPath(NewPath, MpqFile), "*")
                     End If
                     fNum = FreeFile
                     Open FullPath(CurPath, Param(2)) For Binary As #fNum
@@ -1049,7 +1059,7 @@ CommandError:
     lNum = lNum + 1
     bNum = EndLine + 1
 Next bNum
-MpqEx.Mpq.DefaultMaxFiles = OldDefaultMaxFiles
+DefaultMaxFiles = OldDefaultMaxFiles
 If Mid(OldPath, 2, 1) = ":" Then ChDrive Left(OldPath, 1)
 ChDir OldPath
 End Sub
@@ -1064,35 +1074,37 @@ On Error GoTo 0
 SBytes = Mid(StrConv(buffer, vbUnicode), Start + 1, Length)
 End Function
 Function FindMpqHeader(MpqFile As String) As Long
-Dim fNum As Long, Text As String, bNum As Long, MpqHead As Long
-If FileExists(MpqFile) = False Then
-    FindMpqHeader = -1
-    Exit Function
-End If
-fNum = FreeFile
-Open MpqFile For Binary As #fNum
-For bNum = 1 To LOF(fNum) Step 2 ^ 20
-    Text = String(2 ^ 20 + 32, Chr(0))
-    If LOF(fNum) - bNum + 1 >= 2 ^ 20 + 32 Then
-        Get #fNum, bNum, Text
-    Else
-        Text = String(LOF(fNum) - bNum + 1, Chr(0))
-        Get #fNum, bNum, Text
+    If FileExists(MpqFile) = False Then
+        FindMpqHeader = -1
+        Exit Function
     End If
-    MpqHead = InStr(Text, "MPQ" + Chr(26))
-CheckAgain:
-    If MpqHead > 0 Then
-        If JBytes(Text, MpqHead + 4, 4) >= 32 And JBytes(Text, MpqHead + 12, 2) = 0 Then
-            Exit For
-        Else
-            MpqHead = InStr(MpqHead + 4, Text, "MPQ" + Chr(26))
-            GoTo CheckAgain
+    Dim hFile
+    hFile = FreeFile
+    Open MpqFile For Binary As #hFile
+    Dim FileLen As Long
+    FileLen = LOF(hFile)
+    Dim pbuf As String
+    pbuf = String(32, Chr(0))
+    Dim i As Long
+    For i = 0 To FileLen - 1 Step 512
+        Get #hFile, 1 + i, pbuf
+        If Left(pbuf, 4) = "MPQ" + Chr(26) Or Left(pbuf, 4) = "BN3" + Chr(26) Then
+            ' Storm no longer does this, so this shouldn't either
+            'FileLen = FileLen - i
+            'If JBytes(pbuf, 9, 4) = FileLen
+            '    FileMpqHeader = i
+            '    Close #hFile
+            '    Exit Function
+            'Else
+            '    FileLen = FileLen + i
+            'End If
+            FindMpqHeader = i
+            Close #hFile
+            Exit Function
         End If
-    End If
-Next bNum
-Close #fNum
-FindMpqHeader = bNum + MpqHead - 2
-If MpqHead = 0 Then FindMpqHeader = -1
+    Next i
+    FindMpqHeader = -1
+    Close #hFile
 End Function
 Function JBytes(Text As String, Start As Long, Length As Long)
 Dim buffer() As Byte, NumData As Currency

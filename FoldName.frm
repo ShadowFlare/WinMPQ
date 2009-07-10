@@ -65,13 +65,12 @@ Attribute VB_Name = "FoldName"
 Attribute VB_Creatable = False
 Attribute VB_Exposed = False
 Option Explicit
-
 Private Sub Command1_Click()
 AddFolderName = Text1
 Unload Me
 End Sub
 Private Sub Command2_Click()
-AddFolderName = ""
+AddFolderName = Chr(0) + Chr(255) + Chr(127) + Chr(128)
 Unload Me
 End Sub
 Private Sub Form_Load()

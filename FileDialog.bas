@@ -107,6 +107,13 @@ For cNum = 1 To Len(TextStr)
 Next cNum
 End Sub
 Sub StripNull(ByRef TextStr As String)
+Dim cNum As Long
+cNum = InStr(1, TextStr, Chr$(0))
+If cNum Then
+    TextStr = Left(TextStr, cNum - 1)
+End If
+End Sub
+Sub StripNullMulti(ByRef TextStr As String)
 Dim cNum As Long, cNum2 As Long
 For cNum = 1 To Len(TextStr)
     cNum2 = InStr(cNum, TextStr, Chr$(0))
@@ -165,8 +172,13 @@ If Len(lpFileDialog.FileTitle) <= lpFileDialog.MaxFileTitleSize Then _
 ShowOpen = GetOpenFileName(lpFileDialog)
 lpFileDialog.Filter = Left$(lpFileDialog.Filter, Len(lpFileDialog.Filter) - 1)
 ReplaceChar lpFileDialog.Filter, Chr$(0), "|"
-StripNull lpFileDialog.FileName
-StripNull lpFileDialog.FileTitle
+If lpFileDialog.Flags And (OFN_ALLOWMULTISELECT Or OFN_EXPLORER) Then
+    StripNullMulti lpFileDialog.FileName
+    StripNullMulti lpFileDialog.FileTitle
+Else
+    StripNull lpFileDialog.FileName
+    StripNull lpFileDialog.FileTitle
+End If
 End Function
 Function ShowSave(ByRef lpFileDialog As OPENFILENAME) As Boolean
 lpFileDialog.lStructSize = Len(lpFileDialog)
