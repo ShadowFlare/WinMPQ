@@ -1755,10 +1755,11 @@ Do While fNum <= List.ListItems.Count - 1
 Loop
 End Sub
 Sub ShowSelected()
-Dim fNum As Long, nSelect As Long, sSize As Long, fSize As Long, L2 As String, hMPQ As Long, hFile As Long
+Dim fNum As Long, nSelect As Long, sSize As Currency, fSize As Long, L2 As String, hMPQ As Long, hFile As Long
 On Error GoTo NotSelected
 List.SelectedItem.Tag = List.SelectedItem.Tag
 On Error GoTo 0
+On Error Resume Next
 For fNum = 1 To List.ListItems.Count
     If List.ListItems.Item(fNum).Selected Then
         nSelect = nSelect + 1
@@ -1792,12 +1793,14 @@ ElseIf sSize = 0 Then
 Else
     StatBar.Panels.Item(1).Text = "Selected " + CStr(nSelect) + " files, " + CStr(Int(sSize / 1024)) + "KB"
 End If
+On Error GoTo 0
 Exit Sub
 NotSelected:
 StatBar.Panels.Item(1).Text = "Selected 0 files, 0KB"
 End Sub
 Sub ShowTotal()
-Dim fNum As Long, nFiles As Long, tSize As Long
+Dim fNum As Long, nFiles As Long, tSize As Currency
+On Error Resume Next
 For fNum = 1 To List.ListItems.Count
     nFiles = nFiles + 1
     If List.ListItems.Item(fNum).ListSubItems(1).Text <> "" Then
@@ -1809,6 +1812,7 @@ If tSize / 1024 > 0 And tSize / 1024 < 1 Then
 Else
     StatBar.Panels.Item(2).Text = "Total " + CStr(nFiles) + "/" + CStr(GetNumMpqFiles(CD.FileName)) + " files, " + CStr(Int(tSize / 1024)) + "KB"
 End If
+On Error GoTo 0
 End Sub
 Private Sub cmdGo_Click()
 StatBar.Style = 1
