@@ -71,6 +71,44 @@ AboutPage = Path + "sfmpq.dll"
 If Not FileExists(AboutPage) Then AboutPage = "sfmpq.dll"
 ShellExecute 0, vbNullString, "res://" + AboutPage + "/about", vbNullString, vbNullString, 1
 End Sub
+Sub GetCompressFlags(File As String, ByRef cType As Integer, ByRef dwFlags As Long)
+Dim bNum As Long, fExt As String
+dwFlags = MAFA_REPLACE_EXISTING
+If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
+For bNum = 1 To Len(File)
+    If InStr(bNum, File, ".") > 0 Then
+        bNum = InStr(bNum, File, ".")
+    Else
+        Exit For
+    End If
+Next bNum
+If bNum > 1 Then
+    fExt = Mid(File, bNum - 1)
+Else
+    fExt = File
+End If
+If LCase(fExt) = ".bik" Then
+    cType = CInt(GetReg(AppKey + "Compression\.bik", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".smk" Then
+    cType = CInt(GetReg(AppKey + "Compression\.smk", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".mp3" Then
+    cType = CInt(GetReg(AppKey + "Compression\.mp3", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".mpq" Then
+    cType = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".w3m" Then
+    cType = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".wav" Then
+    cType = CInt(GetReg(AppKey + "Compression\.wav", "0"))
+Else
+    cType = CInt(GetReg(AppKey + "Compression\" + fExt, CStr(DefaultCompressID)))
+End If
+End Sub
+
 Function mOpenMpq(FileName As String) As Long
 Dim hMPQ As Long
 mOpenMpq = 0
@@ -269,41 +307,10 @@ ReDim ListedFiles(nHashEntries - 1)
 sListFiles = SFileListFiles(hMPQ, NewFileLists, ListedFiles(0), 0)
 End Function
 Sub mAddAutoFile(hMPQ As Long, File As String, MpqPath As String)
-Dim cType As Integer, bNum As Long, fExt As String, dwFlags As Long
-dwFlags = MAFA_REPLACE_EXISTING
-If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
-For bNum = 1 To Len(File)
-    If InStr(bNum, File, ".") > 0 Then
-        bNum = InStr(bNum, File, ".")
-    Else
-        Exit For
-    End If
-Next bNum
-If bNum > 1 Then
-    fExt = Mid(File, bNum - 1)
-Else
-    fExt = File
-End If
-If LCase(fExt) = ".bik" Then
-    cType = CInt(GetReg(AppKey + "Compression\.bik", "-2"))
-    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
-ElseIf LCase(fExt) = ".smk" Then
-    cType = CInt(GetReg(AppKey + "Compression\.smk", "-2"))
-    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
-ElseIf LCase(fExt) = ".mp3" Then
-    cType = CInt(GetReg(AppKey + "Compression\.mp3", "-2"))
-    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
-ElseIf LCase(fExt) = ".mpq" Then
-    cType = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
-    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
-ElseIf LCase(fExt) = ".w3m" Then
-    cType = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
-    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
-ElseIf LCase(fExt) = ".wav" Then
-    cType = CInt(GetReg(AppKey + "Compression\.wav", "0"))
-Else
-    cType = CInt(GetReg(AppKey + "Compression\" + fExt, CStr(DefaultCompressID)))
-End If
+Dim cType As Integer, dwFlags As Long
+
+GetCompressFlags File, cType, dwFlags
+
 Select Case cType
 Case -2
 MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags, 0, 0
@@ -317,6 +324,25 @@ Case Else
 MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
 End Select
 End Sub
+Sub mAddAutoFromBuffer(hMPQ As Long, ByRef buffer As Byte, BufSize As Long, MpqPath As String)
+Dim cType As Integer, dwFlags As Long
+
+GetCompressFlags MpqPath, cType, dwFlags
+
+Select Case cType
+Case -2
+MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags, 0, 0
+Case -1
+MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+Case -3
+MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+Case 0, 1, 2
+MpqAddWaveFromBuffer hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, cType
+Case Else
+MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
+End Select
+End Sub
+
 Function DirEx(ByVal Path As String, Filter As String, Attributes, Recurse As Boolean) As String
 Dim Files() As String, lNum As Long, Folders() As String
 If Right(Path, 1) <> "\" And Path <> "" Then Path = Path + "\"

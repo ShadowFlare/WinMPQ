@@ -97,7 +97,7 @@ Dim MpqHeader As Long, IsEXE As Boolean, FileDialog As OPENFILENAME
 Private Sub cmdAdd_Click()
 Dim OldFileName As String, NewMpqHeader As Long, fNum As Long, Text As String, fNum2 As Long, Text2 As String, bNum As Long
 FileDialog.Flags = &H1000 Or &H4 Or &H2
-FileDialog.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx)|*.mpq;*.exe;*.snp;*.scm;*.scx|All Files (*.*)|*.*"
+FileDialog.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x|All Files (*.*)|*.*"
 OldFileName = FileDialog.FileName
 FileDialog.hwndOwner = hWnd
 If ShowOpen(FileDialog) = False Then GoTo Cancel

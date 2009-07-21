@@ -58,7 +58,7 @@ Begin VB.Form About
    Begin VB.Label Label3 
       AutoSize        =   -1  'True
       BackStyle       =   0  'Transparent
-      Caption         =   "ShadowFlare's Realm - http://shadowflare.gameproc.com/"
+      Caption         =   "ShadowFlare's Realm - http://sfsrealm.hopto.org/"
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Times New Roman"
          Size            =   9.75
@@ -78,7 +78,7 @@ Begin VB.Form About
    End
    Begin VB.Label Label2 
       AutoSize        =   -1  'True
-      Caption         =   "Copyright ?ShadowFlare Software"
+      Caption         =   "Copyright © ShadowFlare Software"
       Height          =   195
       Left            =   120
       TabIndex        =   1
@@ -162,7 +162,7 @@ Label4.Font.underline = False
 Label5.Font.underline = False
 End Sub
 Private Sub Label3_Click()
-ShellExecute hWnd, vbNullString, "http://shadowflare.gameproc.com/", vbNullString, vbNullString, 1
+ShellExecute hWnd, vbNullString, "http://sfsrealm.hopto.org/", vbNullString, vbNullString, 1
 End Sub
 Private Sub Label3_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
 Label3.ForeColor = &HFF00&

@@ -681,6 +681,81 @@ MousePointer = 0
 ShowSelected
 ShowTotal
 End Sub
+Sub ConvertCwad()
+    Dim hCwad As Long, hMPQ As Long, hFile As Long, ListBuffer As String, BufSize As Long, Files() As String, buffer() As Byte, fLen As Long, nFile As Long, CwadName As String, dwFlags As Long
+
+    If CWadOpenArchive(CD.FileName, 0, hCwad) Then
+        MsgBox "This archive must be converted to MPQ format to open it." + vbCrLf + "Enter a name for the converted archive or cancel if you do not want to perform the conversion.", vbInformation, "WinMPQ"
+        CwadName = CD.FileName
+        CD.Flags = &H1000 Or &H4 Or &H2
+        CD.DefaultExt = "mpq"
+        CD.Filter = "Mpq Archive (*.mpq)|*.mpq"
+        CD.hwndOwner = hWnd
+        CD.FileName = CwadName + ".mpq"
+        If ShowSave(CD) Then
+            If CD.FileName = CwadName Then
+                MsgBox "Cannot overwrite source archive.", vbExclamation, "WinMPQ"
+                CWadCloseArchive hCwad
+                Exit Sub
+            End If
+
+            BufSize = CWadListFiles(hCwad, ListBuffer, 0)
+            If BufSize > 0 Then ListBuffer = String$(BufSize - 1, Chr$(0))
+            CWadListFiles hCwad, ListBuffer, BufSize
+            MultiStringToArray ListBuffer, Files
+
+            If FileExists(CD.FileName) Then Kill CD.FileName
+            hMPQ = mOpenMpq(CD.FileName)
+            If hMPQ = 0 Then
+                StatBar.SimpleText = "Can't create archive " + CD.FileName
+            Else
+                dwFlags = MAFA_REPLACE_EXISTING
+                If GlobalEncrypt Then dwFlags = dwFlags Or MAFA_ENCRYPT
+
+                For nFile = 1 To UBound(Files)
+                    If CWadOpenFile(hCwad, Files(nFile), 0, hFile) Then
+                        fLen = CWadGetFileSize(hFile)
+
+                        If fLen > 0 Then
+                            ReDim buffer(fLen - 1)
+                        Else
+                            ReDim buffer(0)
+                        End If
+
+                        CWadSetFilePointer hFile, 0, FILE_BEGIN
+                        CWadReadFile hFile, buffer(0), fLen, fLen
+                        CWadCloseFile hFile
+
+                        StatBar.SimpleText = "Adding " + Files(nFile) + "..."
+                        MousePointer = 11
+                        If mnuMCNone.Checked Then
+                            MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags, 0, 0
+                        ElseIf mnuMCStandard.Checked Then
+                            MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
+                        ElseIf mnuMCDeflate.Checked Then
+                            MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+                        ElseIf mnuMCAMedium.Checked Then
+                            MpqAddWaveFromBuffer hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, 0
+                        ElseIf mnuMCAHighest.Checked Then
+                            MpqAddWaveFromBuffer hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, 1
+                        ElseIf mnuMCALowest.Checked Then
+                            MpqAddWaveFromBuffer hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, 2
+                        ElseIf mnuMCAuto.Checked Then
+                            mAddAutoFromBuffer hMPQ, buffer(0), fLen, Files(nFile)
+                        End If
+                    End If
+                Next nFile
+
+                MpqCloseUpdatedArchive hMPQ, 0
+            End If
+        Else
+            CD.FileName = CwadName
+        End If
+
+        CWadCloseArchive hCwad
+    End If
+End Sub
+
 Sub DelRecentFile(rFileName As String)
 Dim bNum As Long, fNum As Long
 For bNum = 1 To 8
@@ -1587,6 +1662,11 @@ If FileExists(CD.FileName) And FileLen(CD.FileName) = 0 Then
     GoTo FileOpened
 End If
 On Error GoTo 0
+
+If IsMPQ(CD.FileName) = False Then
+    ConvertCwad
+End If
+
 If IsMPQ(CD.FileName) = False Then
     CD.FileName = ""
     MsgBox "This file does not contain an MPQ archive.", vbExclamation, "WinMPQ"
@@ -1634,6 +1714,7 @@ List.ListItems.Clear
 List.Sorted = False
 FileFilter = mFilter
 StatBar.SimpleText = "Building list... 0% complete"
+mFilter.Clear
 For fNum = 0 To UBound(FileEntries)
 #If InternalListing Then
     If Mpq.FileExists(CD.FileName, FileList(fNum)) Then
@@ -1743,6 +1824,7 @@ Caption = "WinMPQ - " + Mid(CD.FileName, bNum)
 AddRecentFile CD.FileName
 MousePointer = 0
 End Sub
+
 Sub RemoveDuplicates()
 Dim fNum As Long
 fNum = 1
@@ -1988,6 +2070,7 @@ If WindowState <> 1 Then
     txtCommand.Width = ScaleWidth - cmdGo.Width - Label1.Width
     cmdGo.Top = txtCommand.Top
     cmdGo.Left = txtCommand.Left + txtCommand.Width
+    mFilter.Left = Toolbar.Buttons.Item("filterspace").Left
     mFilter.Width = ScaleWidth - mFilter.Left - Toolbar.Buttons.Item("List").Width
     Toolbar.Buttons.Item("filterspace").Width = mFilter.Width
 End If
@@ -2910,7 +2993,7 @@ Private Sub mnuFNew_Click()
 Dim TItem As Menu
 CD.Flags = &H1000 Or &H4 Or &H2
 CD.DefaultExt = "mpq"
-CD.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m|All Files (*.*)|*.*"
+CD.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x|All Files (*.*)|*.*"
 CD.hwndOwner = hWnd
 If ShowSave(CD) = False Then GoTo Cancel
 ReDim FileList(0) As String
@@ -2935,7 +3018,7 @@ End Sub
 Private Sub mnuFOpen_Click()
 Dim OldFileName As String
 CD.Flags = &H1000 Or &H4 Or &H2
-CD.Filter = "Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m|All Files (*.*)|*.*"
+CD.Filter = "All Archives|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x;*.cwd|Mpq Archives (*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x)|*.mpq;*.exe;*.snp;*.scm;*.scx;*.w3m;*.w3x|Cwad Archives (*.cwd;*.exe)|*.cwd;*.exe|All Files (*.*)|*.*"
 OldFileName = CD.FileName
 CD.hwndOwner = hWnd
 If ShowOpen(CD) = False Then GoTo Cancel
