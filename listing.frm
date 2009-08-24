@@ -56,7 +56,7 @@ Begin VB.Form MpqEx
       Width           =   6690
       _ExtentX        =   11800
       _ExtentY        =   609
-      ButtonWidth     =   1535
+      ButtonWidth     =   1561
       ButtonHeight    =   556
       Wrappable       =   0   'False
       Appearance      =   1
@@ -308,7 +308,7 @@ Begin VB.Form MpqEx
       End
       Begin VB.Menu mnuMAdd 
          Caption         =   "&Add..."
-         Shortcut        =   ^A
+         Shortcut        =   ^{INSERT}
       End
       Begin VB.Menu mnuMAddFolder 
          Caption         =   "Add &Folder..."
@@ -335,6 +335,10 @@ Begin VB.Form MpqEx
          Begin VB.Menu mnuMCDeflate 
             Caption         =   "&Deflate"
             Shortcut        =   {F9}
+         End
+         Begin VB.Menu mnuMCBzip2 
+            Caption         =   "&Bzip2"
+            Shortcut        =   ^{F11}
          End
          Begin VB.Menu mnuMCAudio 
             Caption         =   "&Audio"
@@ -734,6 +738,8 @@ Sub ConvertCwad()
                             MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
                         ElseIf mnuMCDeflate.Checked Then
                             MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+                        ElseIf mnuMCBzip2.Checked Then
+                            MpqAddFileFromBufferEx hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
                         ElseIf mnuMCAMedium.Checked Then
                             MpqAddWaveFromBuffer hMPQ, buffer(0), fLen, Files(nFile), dwFlags Or MAFA_COMPRESS, 0
                         ElseIf mnuMCAHighest.Checked Then
@@ -1211,7 +1217,11 @@ If sLine <> "" Then
                         ElseIf cType = -1 Then
                             mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine
                         ElseIf cType = 1 Then
-                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
+                            If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
+                            Else
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, 0
+                            End If
                         Else
                             MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0, 0
                         End If
@@ -1233,7 +1243,11 @@ If sLine <> "" Then
                         ElseIf cType = -1 Then
                             mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3)
                         ElseIf cType = 1 Then
-                            MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
+                            If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
+                            Else
+                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, 0
+                            End If
                         Else
                             MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0, 0
                         End If
@@ -2243,8 +2257,15 @@ Private Sub List_KeyPress(KeyAscii As Integer)
 If KeyAscii = 13 Then List_DblClick
 End Sub
 Private Sub List_KeyUp(KeyCode As Integer, Shift As Integer)
+Dim fNum As Long, fSelect As Long
 If KeyCode = vbKeyDelete Then
     mnuMDelete_Click
+ElseIf (Shift And vbCtrlMask) And KeyCode = vbKeyA Then
+    fSelect = List.SelectedItem.Index
+    For fNum = 1 To List.ListItems.Count
+        List.ListItems.Item(fNum).Selected = True
+    Next fNum
+    List.ListItems.Item(fSelect).Selected = True
 ElseIf KeyCode = 93 Or ((Shift And vbShiftMask) And KeyCode = vbKeyF10) Then
     On Error GoTo NotSelected
     List.SelectedItem.Tag = List.SelectedItem.Tag
@@ -2373,6 +2394,8 @@ For bNum = 1 To UBound(Files)
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
     ElseIf mnuMCDeflate.Checked Then
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+    ElseIf mnuMCBzip2.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
     ElseIf mnuMCAMedium.Checked Then
         MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
@@ -2608,6 +2631,8 @@ For bNum = 1 To UBound(Files)
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
     ElseIf mnuMCDeflate.Checked Then
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+    ElseIf mnuMCBzip2.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
     ElseIf mnuMCAMedium.Checked Then
         MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
@@ -2719,6 +2744,8 @@ For bNum = 1 To UBound(Files)
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
     ElseIf mnuMCDeflate.Checked Then
         MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+    ElseIf mnuMCBzip2.Checked Then
+        MpqAddFileToArchiveEx hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
     ElseIf mnuMCAMedium.Checked Then
         MpqAddWaveToArchive hMPQ, Files(bNum), ShortFiles(bNum), dwFlags Or MAFA_COMPRESS, 0
     ElseIf mnuMCAHighest.Checked Then
@@ -2771,6 +2798,7 @@ Private Sub mnuMCAHighest_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = True
@@ -2780,6 +2808,7 @@ Private Sub mnuMCALowest_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = True
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
@@ -2791,6 +2820,7 @@ Private Sub mnuMCAMedium_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = True
 mnuMCAHighest.Checked = False
@@ -2800,16 +2830,29 @@ Private Sub mnuMCAuto_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
 mnuMCAuto.Checked = True
 End Sub
 
+Private Sub mnuMCBzip2_Click()
+mnuMCNone.Checked = False
+mnuMCStandard.Checked = False
+mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = True
+mnuMCALowest.Checked = False
+mnuMCAMedium.Checked = False
+mnuMCAHighest.Checked = False
+mnuMCAuto.Checked = False
+End Sub
+
 Private Sub mnuMCDeflate_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = True
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
@@ -2838,6 +2881,7 @@ Private Sub mnuMCNone_Click()
 mnuMCNone.Checked = True
 mnuMCStandard.Checked = False
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
@@ -2870,6 +2914,7 @@ Private Sub mnuMCStandard_Click()
 mnuMCNone.Checked = False
 mnuMCStandard.Checked = True
 mnuMCDeflate.Checked = False
+mnuMCBzip2.Checked = False
 mnuMCALowest.Checked = False
 mnuMCAMedium.Checked = False
 mnuMCAHighest.Checked = False
@@ -3224,6 +3269,8 @@ For fNum = 1 To UBound(OpenFiles)
                             MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
                         ElseIf mnuMCDeflate.Checked Then
                             MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+                        ElseIf mnuMCBzip2.Checked Then
+                            MpqAddFileToArchiveEx hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
                         ElseIf mnuMCAMedium.Checked Then
                             MpqAddWaveToArchive hMPQ, FullPath(Path, OpenFiles(fNum)), OpenFiles(fNum), dwFlags Or MAFA_COMPRESS, 0
                         ElseIf mnuMCAHighest.Checked Then

@@ -3,20 +3,20 @@ Begin VB.Form Options
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Options"
    ClientHeight    =   4695
-   ClientLeft      =   1575
-   ClientTop       =   1815
+   ClientLeft      =   1665
+   ClientTop       =   2085
    ClientWidth     =   5415
    Height          =   5100
    Icon            =   "Options.frx":0000
    KeyPreview      =   -1  'True
-   Left            =   1515
+   Left            =   1605
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
    ScaleHeight     =   4695
    ScaleWidth      =   5415
    ShowInTaskbar   =   0   'False
-   Top             =   1470
+   Top             =   1740
    Width           =   5535
    Begin VB.CommandButton Command2 
       Caption         =   "&Cancel"
@@ -421,7 +421,7 @@ Begin VB.Form Options
          Height          =   315
          ItemData        =   "Options.frx":0245
          Left            =   1200
-         List            =   "Options.frx":024F
+         List            =   "Options.frx":0252
          Style           =   2  'Dropdown List
          TabIndex        =   33
          Top             =   3120
@@ -429,9 +429,9 @@ Begin VB.Form Options
       End
       Begin VB.ListBox List1 
          Height          =   1815
-         ItemData        =   "Options.frx":0266
+         ItemData        =   "Options.frx":0270
          Left            =   0
-         List            =   "Options.frx":0268
+         List            =   "Options.frx":0272
          Sorted          =   -1  'True
          TabIndex        =   27
          Top             =   720
@@ -463,9 +463,9 @@ Begin VB.Form Options
       Begin VB.ComboBox Combo1 
          Enabled         =   0   'False
          Height          =   315
-         ItemData        =   "Options.frx":026A
+         ItemData        =   "Options.frx":0274
          Left            =   1800
-         List            =   "Options.frx":027A
+         List            =   "Options.frx":0287
          Style           =   2  'Dropdown List
          TabIndex        =   29
          Top             =   720
@@ -668,7 +668,11 @@ Else
     If Combo1.ListIndex < 2 Then
         NewExtComp(xNum) = Combo1.ListIndex - 2
     Else
-        NewExtComp(xNum) = -3
+        If Combo1.ListIndex = 2 Then
+            NewExtComp(xNum) = -3
+        Else
+            NewExtComp(xNum) = -4
+        End If
     End If
 End If
 End Sub
@@ -801,6 +805,9 @@ DefaultCompress = MAFA_COMPRESS_STANDARD
 Case 1
 DefaultCompressID = -3
 DefaultCompress = MAFA_COMPRESS_DEFLATE
+Case 2
+DefaultCompressID = -4
+DefaultCompress = MAFA_COMPRESS_BZIP2
 End Select
 DefaultCompressLevel = Combo3.ListIndex - 1
 SetReg AppKey + "DefaultCompress", DefaultCompressID, REG_DWORD
@@ -927,11 +934,13 @@ DCompType = GetReg(AppKey + "DefaultCompress", -1)
 Select Case DCompType
 Case -3
 Combo2.ListIndex = 1
+Case -4
+Combo2.ListIndex = 2
 Case Else
 Combo2.ListIndex = 0
 End Select
 Combo3.ListIndex = GetReg(AppKey + "DefaultZlibLevel", Z_DEFAULT_COMPRESSION) + 1
-ExtList = GetReg(AppKey + "Compression\List", ".bik.smk.mp3.mpq.w3m.wav")
+ExtList = GetReg(AppKey + "Compression\List", ".bik.smk.mp3.mpq.scm.scx.w3m.w3x.wav")
 If InStr(1, ExtList, ".") > 0 And Len(ExtList) > 1 Then
 Do
     ReDim Preserve NewExtNames(UBound(NewExtNames) + 1) As String
@@ -951,8 +960,14 @@ Do
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.mp3", "-2"))
     ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".mpq" Then
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".scm" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.scm", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".scx" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.scx", "-2"))
     ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".w3m" Then
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
+    ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".w3x" Then
+        NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.w3x", "-2"))
     ElseIf LCase(NewExtNames(UBound(NewExtNames))) = ".wav" Then
         NewExtComp(UBound(NewExtComp)) = CInt(GetReg(AppKey + "Compression\.wav", "0"))
     Else
@@ -1007,6 +1022,9 @@ If List1.ListIndex > -1 Then
     Case -3
         AudioC(0).Value = True
         Combo1.ListIndex = 2
+    Case -4
+        AudioC(0).Value = True
+        Combo1.ListIndex = 4
     Case 0, 1, 2
         OldExtComp = NewExtComp(xNum)
         Combo1.ListIndex = 3

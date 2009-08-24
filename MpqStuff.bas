@@ -99,8 +99,17 @@ ElseIf LCase(fExt) = ".mp3" Then
 ElseIf LCase(fExt) = ".mpq" Then
     cType = CInt(GetReg(AppKey + "Compression\.mpq", "-2"))
     dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".scm" Then
+    cType = CInt(GetReg(AppKey + "Compression\.scm", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".scx" Then
+    cType = CInt(GetReg(AppKey + "Compression\.scx", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
 ElseIf LCase(fExt) = ".w3m" Then
     cType = CInt(GetReg(AppKey + "Compression\.w3m", "-2"))
+    dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
+ElseIf LCase(fExt) = ".w3x" Then
+    cType = CInt(GetReg(AppKey + "Compression\.w3x", "-2"))
     dwFlags = dwFlags And (-1& Xor MAFA_ENCRYPT)
 ElseIf LCase(fExt) = ".wav" Then
     cType = CInt(GetReg(AppKey + "Compression\.wav", "0"))
@@ -318,10 +327,16 @@ Case -1
 MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
 Case -3
 MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+Case -4
+MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
 Case 0, 1, 2
 MpqAddWaveToArchive hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, cType
 Case Else
-MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
+If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+    MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
+Else
+    MpqAddFileToArchiveEx hMPQ, File, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, 0
+End If
 End Select
 End Sub
 Sub mAddAutoFromBuffer(hMPQ As Long, ByRef buffer As Byte, BufSize As Long, MpqPath As String)
@@ -336,10 +351,16 @@ Case -1
 MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_STANDARD, 0
 Case -3
 MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_DEFLATE, DefaultCompressLevel
+Case -4
+MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, MAFA_COMPRESS_BZIP2, 0
 Case 0, 1, 2
 MpqAddWaveFromBuffer hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, cType
 Case Else
-MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
+If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+    MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, DefaultCompressLevel
+Else
+    MpqAddFileFromBufferEx hMPQ, buffer, BufSize, MpqPath, dwFlags Or MAFA_COMPRESS, DefaultCompress, 0
+End If
 End Select
 End Sub
 
@@ -788,7 +809,11 @@ For bNum = 1 To Len(Script)
                             ElseIf cType = -1 Then
                                 mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3) + fLine
                             ElseIf cType = 1 Then
-                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
+                                If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+                                    MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, DefaultCompressLevel
+                                Else
+                                    MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, DefaultCompress, 0
+                                End If
                             Else
                                 MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3) + fLine, dwFlags, 0, 0
                             End If
@@ -798,7 +823,11 @@ For bNum = 1 To Len(Script)
                             ElseIf cType = -1 Then
                                 mAddAutoFile hMPQ, FullPath(CurPath, fLine), Param(3)
                             ElseIf cType = 1 Then
-                                MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
+                                If DefaultCompress = MAFA_COMPRESS_DEFLATE Then
+                                    MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, DefaultCompressLevel
+                                Else
+                                    MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, DefaultCompress, 0
+                                End If
                             Else
                                 MpqAddFileToArchiveEx hMPQ, FullPath(CurPath, fLine), Param(3), dwFlags, 0, 0
                             End If
