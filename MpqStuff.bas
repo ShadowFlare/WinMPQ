@@ -302,7 +302,7 @@ StartSearch:
     If Right(NewFileLists, 2) = vbCrLf Then NewFileLists = Left(NewFileLists, Len(NewFileLists) - 2)
 End If
 nHashEntries = SFileGetFileInfo(hMPQ, SFILE_INFO_HASH_TABLE_SIZE)
-If nHashEntries - 1 < 1 Then Exit Function
+If nHashEntries - 1 < 0 Then Exit Function
 ReDim ListedFiles(nHashEntries - 1)
 sListFiles = SFileListFiles(hMPQ, NewFileLists, ListedFiles(0), 0)
 End Function
