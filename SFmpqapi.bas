@@ -175,12 +175,13 @@ Public Const MAFA_REPLACE_EXISTING As Long = &H1
 ' MpqAddFileToArchiveEx compression flags
 Public Const MAFA_COMPRESS_STANDARD As Long = &H8 'Standard PKWare DCL compression
 Public Const MAFA_COMPRESS_DEFLATE  As Long = &H2 'ZLib's deflate compression
-Public Const MAFA_COMPRESS_WAVE    As Long = &H81 'Standard wave compression
-Public Const MAFA_COMPRESS_WAVE2   As Long = &H41 'Unused wave compression
+Public Const MAFA_COMPRESS_BZIP2   As Long = &H10 'bzip2 compression
+Public Const MAFA_COMPRESS_WAVE    As Long = &H81 'Stereo wave compression
+Public Const MAFA_COMPRESS_WAVE2   As Long = &H41 'Mono wave compression
 
 ' Flags for individual compression types used for wave compression
-Public Const MAFA_COMPRESS_WAVECOMP1 As Long = &H80 'Main compressor for standard wave compression
-Public Const MAFA_COMPRESS_WAVECOMP2 As Long = &H40 'Main compressor for unused wave compression
+Public Const MAFA_COMPRESS_WAVECOMP1 As Long = &H80 'Main compressor for stereo wave compression
+Public Const MAFA_COMPRESS_WAVECOMP2 As Long = &H40 'Main compressor for mono wave compression
 Public Const MAFA_COMPRESS_WAVECOMP3  As Long = &H1 'Secondary compressor for wave compression
 
 ' ZLib deflate compression level constants (used with MpqAddFileToArchiveEx and MpqAddFileFromBufferEx)
