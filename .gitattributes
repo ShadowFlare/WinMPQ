@@ -1,0 +1,8 @@
+*.bas -crlf
+*.frm -crlf
+*.frx -crlf
+*.gif -crlf
+*.ico -crlf
+*.res -crlf
+*.rtf -crlf
+*.vbp -crlf
