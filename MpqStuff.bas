@@ -63,14 +63,7 @@ Public Const WM_SETREDRAW As Long = &HB
 Public Const WM_PAINT  As Long = &HF
 Const gintMAX_SIZE% = 255
 Public Const SEE_MASK_CLASSNAME As Long = &H1
-Sub AboutSFMpq()
-Dim AboutPage As String, Path As String
-Path = App.Path
-If Right(Path, 1) <> "\" Then Path = Path + "\"
-AboutPage = Path + "sfmpq.dll"
-If Not FileExists(AboutPage) Then AboutPage = "sfmpq.dll"
-ShellExecute 0, vbNullString, "res://" + AboutPage + "/about", vbNullString, vbNullString, 1
-End Sub
+
 Sub GetCompressFlags(File As String, ByRef cType As Integer, ByRef dwFlags As Long)
 Dim bNum As Long, fExt As String
 dwFlags = MAFA_REPLACE_EXISTING
