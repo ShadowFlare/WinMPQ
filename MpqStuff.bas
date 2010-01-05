@@ -1136,46 +1136,25 @@ If Mid(OldPath, 2, 1) = ":" Then ChDrive Left(OldPath, 1)
 ChDir OldPath
 End Sub
 Function FindMpqHeader(MpqFile As String) As Long
+    FindMpqHeader = -1
     If FileExists(MpqFile) = False Then
-        FindMpqHeader = -1
         Exit Function
     End If
-    Dim hFile
-    hFile = FreeFile
-    Open MpqFile For Binary As #hFile
-    Dim FileLen As Long
-    FileLen = LOF(hFile)
-    Dim pbuf As String
-    pbuf = String(32, Chr(0))
-    Dim i As Long
-    For i = 0 To FileLen - 1 Step 512
-        Get #hFile, 1 + i, pbuf
-        If Left(pbuf, 4) = "MPQ" + Chr(26) Or Left(pbuf, 4) = "BN3" + Chr(26) Then
-            ' Storm no longer does this, so this shouldn't either
-            'FileLen = FileLen - i
-            'If JBytes(pbuf, 9, 4) = FileLen
-            '    FileMpqHeader = i
-            '    Close #hFile
-            '    Exit Function
-            'Else
-            '    FileLen = FileLen + i
-            'End If
-            FindMpqHeader = i
-            Close #hFile
-            Exit Function
-        End If
-    Next i
-    FindMpqHeader = -1
-    Close #hFile
+    Dim hMPQ As Long, hFile As Long
+    If SFileOpenArchive(MpqFile, 0, 0, hMPQ) Then
+        CopyMemory hFile, ByVal hMPQ + 268, 4
+        FindMpqHeader = SFileFindMpqHeader(hFile)
+        SFileCloseArchive hMPQ
+    End If
 End Function
 Function GetNumMpqFiles(MpqFile As String) As Long
-Dim fNum As Long, Text As String, MpqHeader As Long
-fNum = FreeFile
-Text = String(4, Chr(0))
-MpqHeader = FindMpqHeader(MpqFile)
-If MpqHeader > -1 Then
-    Open MpqFile For Binary As #fNum
-    Get #fNum, MpqHeader + 29, GetNumMpqFiles
-    Close #fNum
-End If
+    GetNumMpqFiles = 0
+    If FileExists(MpqFile) = False Then
+        Exit Function
+    End If
+    Dim hMPQ As Long
+    If SFileOpenArchive(MpqFile, 0, 0, hMPQ) Then
+        GetNumMpqFiles = SFileGetFileInfo(hMPQ, SFILE_INFO_NUM_FILES)
+        SFileCloseArchive hMPQ
+    End If
 End Function
